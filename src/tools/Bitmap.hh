@@ -60,6 +60,8 @@ class cBitmap{
   /* Copies bitmap into the provided parameter buffer. maxsize is the maximum space in buffer in sizeof(char) */
   /* Output format is RGBA in that order */
   void getBitmap( unsigned char * buffer, int maxsize );
+
+  /* Same as above, but output format is greyscale, 1 Byte per pixel */
   void getGreyscaleBitmap( unsigned char * buffer, int maxsize );
 
   /* Loads bitmap from bmp */

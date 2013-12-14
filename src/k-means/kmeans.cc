@@ -23,7 +23,8 @@ int main( int argc, char ** argv ){
 	strcpy( filename, "../../media/A.bmp" );
 	bitmap.loadBitmap( filename );
 	int number_pixels = bitmap.getWidth()*bitmap.getHeight();
-	unsigned char * buffer = (unsigned char*) malloc( number_pixels );
+
+	unsigned char * buffer = new unsigned char[number_pixels];
 	bitmap.getGreyscaleBitmap( buffer, number_pixels );
 
 	VlSiftFilt * s = vl_sift_new( bitmap.getWidth(), bitmap.getHeight(), 3, 1, 0 );
@@ -37,6 +38,7 @@ int main( int argc, char ** argv ){
 	*/
 
 	vl_sift_delete( s );
+	delete[] buffer;
 	return 0;
 }
 
