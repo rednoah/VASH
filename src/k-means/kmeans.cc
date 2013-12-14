@@ -2,32 +2,41 @@
 
 using namespace std;
 
-vector<SIFTFeature> dataset;
-
 int main( int argc, char ** argv ){
 	//The centroids can be used for the creation of visual words
 	//After finding features in an image, compute distances to all k centroids
 	//and choose best fit
-	SIFTFeature * centroids = new SIFTFeature[CLUSTER_K];
+	vector<SIFTFeature> dataset;
 
-	loadDataset( dataset );
-	lloyds( dataset, centroids, CLUSTER_K );
+	KMeansClustering c(CLUSTER_K);
+	c.loadDataset( dataset );
+	c.lloyds( dataset );
 
 	VlSiftFilt * s = vl_sift_new( 256, 256, 5, 3, 0 );
 	s = s;
-	delete[] centroids;
 	return 0;
 }
 
+
+KMeansClustering::KMeansClustering( int k ){
+	this->k = k;
+	centroids = new SIFTFeature[k];
+}
+
+KMeansClustering::~KMeansClustering(){
+	delete[] centroids;
+	dataset.clear();
+}
+
 /* Here we will load the SIFT features into memory */
-void loadDataset( vector<SIFTFeature> & db ){
+void KMeansClustering::loadDataset( vector<SIFTFeature> & db ){
 	loadRandomDataset( db );
 }
 
 
 //For this test, we'll load some random data
 //Clustering random data? Good idea...lol
-void loadRandomDataset( vector<SIFTFeature> & db ){
+void KMeansClustering::loadRandomDataset( vector<SIFTFeature> & db ){
 	std::mt19937 generator( 0 );	//Or another seed. But this is just a test, so...
 	std::normal_distribution<double> distribution( 0.0, 1.0 );
 
@@ -46,10 +55,9 @@ void loadRandomDataset( vector<SIFTFeature> & db ){
 	}
 }
 
-/*  Convert the SIFTFeature given in @feature to a visual word in @result
-	using the precomputed @centroids */
+/*  Convert the SIFTFeature given in @feature to a visual word in @result */
 /* Can this be sped up with hashing? */
-void convertToVisualWord( VisualWord & result, SIFTFeature & feature, SIFTFeature * centroids, int k ){
+void KMeansClustering::convertToVisualWord( VisualWord & result, SIFTFeature & feature ){
 	double min_distance = HUGE_VAL;
 	int min_index = -1;
 	for( int i = 0; i < k; i++ ){
@@ -66,9 +74,8 @@ void convertToVisualWord( VisualWord & result, SIFTFeature & feature, SIFTFeatur
 
 
 //Clustering algorithm
-void lloyds( vector<SIFTFeature> & db, SIFTFeature * centroids, int k ){
+void KMeansClustering::lloyds( vector<SIFTFeature> & db ){
 	int * c = new int[k];
-
 	int * assignment = new int[db.size()];
 
 	memset( assignment, 0, db.size()*sizeof( int ) );
@@ -85,7 +92,7 @@ void lloyds( vector<SIFTFeature> & db, SIFTFeature * centroids, int k ){
 	int loop = 0;
 	//k-means is proven to have an upper bound in the number of iterations
 	//If this goes to infinite loop, there is a bug!
-	while( doIteration( db, assignment, centroids, k ) ){ loop++; }	
+	while( doIteration( db, assignment ) ){ loop++; }	
 
 	cout << "Required iterations were: " << loop << endl;
 
@@ -97,7 +104,7 @@ void lloyds( vector<SIFTFeature> & db, SIFTFeature * centroids, int k ){
 	delete[] c;
 }
 
-void getUniqueUniformRandom( int * data, int index, int limit ){
+void KMeansClustering::getUniqueUniformRandom( int * data, int index, int limit ){
 	bool fresh = true;
 	int seed = (index+1)*time( NULL );
 
@@ -121,7 +128,7 @@ void getUniqueUniformRandom( int * data, int index, int limit ){
 }
 
 //One iteration of k-means (lloyds)
-bool doIteration( vector<SIFTFeature> & db, int * assignment, SIFTFeature * centroids, int k ){
+bool KMeansClustering::doIteration( vector<SIFTFeature> & db, int * assignment ){
 	int * old_assignment = new int[db.size()];
 	memcpy( old_assignment, assignment, db.size()*sizeof( int ) );
 
@@ -178,21 +185,21 @@ bool doIteration( vector<SIFTFeature> & db, int * assignment, SIFTFeature * cent
 }
 
 //Add the SIFT feature vector of b onto a
-void addSIFT( SIFTFeature & a, SIFTFeature b ){
+void KMeansClustering::addSIFT( SIFTFeature & a, SIFTFeature b ){
 	for( int i = 0; i < 128; i++ )
 		a.orientations[0].histogram[i] += b.orientations[0].histogram[i];
 	
 }
 
 //Divide SIFT vector a by the scalar b
-void divideSIFT( SIFTFeature & a, double b ){
+void KMeansClustering::divideSIFT( SIFTFeature & a, double b ){
 	for( int i = 0; i < 128; i++ ){
 		a.orientations[0].histogram[i] /= b;
 	}
 }
 
 //Choosing block-distance for this test
-double sift_distance( SIFTFeature a, SIFTFeature b ){
+double KMeansClustering::sift_distance( SIFTFeature a, SIFTFeature b ){
 	double d = 0;
 	for( int i = 0; i < 128; i++ )
 		d += std::abs(a.orientations[0].histogram[i] - b.orientations[0].histogram[i]);

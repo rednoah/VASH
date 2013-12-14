@@ -39,24 +39,37 @@ struct VisualWord{
 };
 
 
-//Placeholder
-//Load all SIFT features into the vector structure
-void loadDataset( vector<SIFTFeature> & db );
-void loadRandomDataset( vector<SIFTFeature> & db );	//This one for testing purposes only!
+class KMeansClustering{
+
+public:
+	KMeansClustering( int k );
+	~KMeansClustering();
+
+	//Placeholder
+	//Load all SIFT features into the vector structure
+	void loadDataset( vector<SIFTFeature> & db );
+	void loadRandomDataset( vector<SIFTFeature> & db );	//This one for testing purposes only!
+
+	void convertToVisualWord( VisualWord & result, SIFTFeature & feature );
+
+	//Used to initialize centroids
+	void getUniqueUniformRandom( int * data, int index, int limit );
+
+	//"Lloyds" k-Means clustering
+	void lloyds( vector<SIFTFeature> & db );
+
+	//Do a single iteration of "Lloyds" algorithm.
+	bool doIteration( vector<SIFTFeature> & db, int * assignment );
+	void divideSIFT( SIFTFeature & a, double b );		//Divide SIFT vector a by the scalar b
+	void addSIFT( SIFTFeature & a, SIFTFeature b );		//Add the SIFT feature vector of b onto a
+
+	//Block distance for SIFT feature
+	double sift_distance( SIFTFeature a, SIFTFeature b );
+private:
+	vector<SIFTFeature> dataset;
+	SIFTFeature * centroids;
+	int k;
 
 
-//Used to initialize centroids
-void getUniqueUniformRandom( int * data, int index, int limit );
-
-//"Lloyds" k-Means clustering
-void lloyds( vector<SIFTFeature> & db, SIFTFeature * centroids, int k );
-
-//Do a single iteration of "Lloyds" algorithm.
-bool doIteration( vector<SIFTFeature> & db, int * assignment, SIFTFeature * centroids, int k );
-void divideSIFT( SIFTFeature & a, double b );
-void addSIFT( SIFTFeature & a, SIFTFeature b );
-
-//Block distance for SIFT feature
-double sift_distance( SIFTFeature a, SIFTFeature b );
-
+};
 #endif
