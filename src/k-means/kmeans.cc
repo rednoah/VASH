@@ -16,6 +16,7 @@ int main( int argc, char ** argv ){
 	c.convertToVisualWord( test, dataset[0] );
 
 
+	
 
 	VlSiftFilt * s = vl_sift_new( 256, 256, 5, 3, 0 );
 	s = s;

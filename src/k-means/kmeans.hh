@@ -5,6 +5,8 @@ extern "C" {
 #include "sift.h"
 }
 
+#include "../tools/Bitmap.hh"
+
 #include <vector>
 #include <random>
 #include <ctime>

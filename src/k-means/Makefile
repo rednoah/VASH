@@ -14,6 +14,7 @@ INCLUDE=../../include
 PARAM=-std=c++0x -I$(INCLUDE) -Wall -Wfatal-errors -O2
 all:
 	$(CC) $(PARAM) -c kmeans.cc
-	$(LN) -o kmeans kmeans.o -L$(LIBS) -Wl,-rpath=$(LIBS) -lvl
+	$(CC) $(PARAM) -c ../tools/Bitmap.cc
+	$(LN) -o kmeans kmeans.o Bitmap.o -L$(LIBS) -Wl,-rpath=$(LIBS) -lvl
 clean:
 	rm *.o
