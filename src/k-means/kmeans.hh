@@ -2,7 +2,7 @@
 #define KMEANS_HH
 
 extern "C" {
-#include "../../../vlfeat/vl/sift.h"
+#include "sift.h"
 }
 
 #include <vector>
