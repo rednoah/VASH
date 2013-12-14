@@ -1,6 +1,10 @@
 #ifndef KMEANS_HH
 #define KMEANS_HH
 
+extern "C" {
+#include "../../../vlfeat/vl/sift.h"
+}
+
 #include <vector>
 #include <random>
 #include <ctime>
@@ -27,6 +31,11 @@ struct SIFTDescriptor{
 //Should we just use best orientation?
 struct SIFTFeature{
  SIFTDescriptor orientations[4];
+};
+
+//Placeholer for our visual words
+struct VisualWord{
+	int id;
 };
 
 

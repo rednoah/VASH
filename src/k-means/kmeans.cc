@@ -5,16 +5,21 @@ using namespace std;
 vector<SIFTFeature> dataset;
 
 int main( int argc, char ** argv ){
+	//The centroids can be used for the creation of visual words
+	//After finding features in an image, compute distances to all k centroids
+	//and choose best fit
 	SIFTFeature * centroids = new SIFTFeature[CLUSTER_K];
 
 	loadDataset( dataset );
 	lloyds( dataset, centroids, CLUSTER_K );
 
+	VlSiftFilt * s = vl_sift_new( 256, 256, 5, 3, 0 );
+	s = s;
 	delete[] centroids;
 	return 0;
 }
 
-
+/* Here we will load the SIFT features into memory */
 void loadDataset( vector<SIFTFeature> & db ){
 	loadRandomDataset( db );
 }
@@ -41,13 +46,36 @@ void loadRandomDataset( vector<SIFTFeature> & db ){
 	}
 }
 
+/*  Convert the SIFTFeature given in @feature to a visual word in @result
+	using the precomputed @centroids */
+/* Can this be sped up with hashing? */
+void convertToVisualWord( VisualWord & result, SIFTFeature & feature, SIFTFeature * centroids, int k ){
+	double min_distance = HUGE_VAL;
+	int min_index = -1;
+	for( int i = 0; i < k; i++ ){
+		double d = sift_distance( feature, centroids[i] );
+
+		if( d < min_distance ){
+			d = min_distance;
+			min_index = i;
+		}
+	}
+
+	result.id = min_index;
+}
+
+
+//Clustering algorithm
 void lloyds( vector<SIFTFeature> & db, SIFTFeature * centroids, int k ){
 	int * c = new int[k];
 
 	int * assignment = new int[db.size()];
 
 	memset( assignment, 0, db.size()*sizeof( int ) );
-	
+
+	//Should we try to speed up initialisation by hashing?
+	//Possibly: Hash all features, choose k buckets as centroids
+	//But will it be faster?	
 	for( int i = 0; i < k; i++ )
 		getUniqueUniformRandom( c, i, db.size() );	//Depending on k and db.size(), you may also assign w/o checking for uniqueness
 	
@@ -149,12 +177,14 @@ bool doIteration( vector<SIFTFeature> & db, int * assignment, SIFTFeature * cent
 	return changes;
 }
 
+//Add the SIFT feature vector of b onto a
 void addSIFT( SIFTFeature & a, SIFTFeature b ){
 	for( int i = 0; i < 128; i++ )
 		a.orientations[0].histogram[i] += b.orientations[0].histogram[i];
 	
 }
 
+//Divide SIFT vector a by the scalar b
 void divideSIFT( SIFTFeature & a, double b ){
 	for( int i = 0; i < 128; i++ ){
 		a.orientations[0].histogram[i] /= b;
