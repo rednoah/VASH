@@ -16,10 +16,27 @@ int main( int argc, char ** argv ){
 	c.convertToVisualWord( test, dataset[0] );
 
 
-	
 
-	VlSiftFilt * s = vl_sift_new( 256, 256, 5, 3, 0 );
-	s = s;
+	/* Testing area */
+	cBitmap bitmap;
+	char filename[32];
+	strcpy( filename, "../../media/A.bmp" );
+	bitmap.loadBitmap( filename );
+	int number_pixels = bitmap.getWidth()*bitmap.getHeight();
+	unsigned char * buffer = (unsigned char*) malloc( number_pixels );
+	bitmap.getGreyscaleBitmap( buffer, number_pixels );
+
+	VlSiftFilt * s = vl_sift_new( bitmap.getWidth(), bitmap.getHeight(), 3, 1, 0 );
+	/*
+	vl_sift_process_first_octave( s, buffer );
+	 ....
+	//vl_sift_process_next_octave( s );
+	vl_sift_detect(...);
+	vl_sift_calc_keypoint_orientations(...);
+	vl_sift_calc_keypoint_descriptor(...);
+	*/
+
+	vl_sift_delete( s );
 	return 0;
 }
 
