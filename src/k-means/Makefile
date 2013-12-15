@@ -11,10 +11,17 @@ else
 	LIBS=../../lib/glnx86
 endif
 INCLUDE=../../include
-PARAM=-std=c++0x -I$(INCLUDE) -Wall -Wfatal-errors -O2
+PARAM=-std=c++0x -I$(INCLUDE) -Wall -Wfatal-errors -g
+#Standard version
 all:
 	$(CC) $(PARAM) -c kmeans.cc
 	$(CC) $(PARAM) -c ../tools/Bitmap.cc
 	$(LN) -o kmeans kmeans.o Bitmap.o -L$(LIBS) -Wl,-rpath=$(LIBS) -lvl
+#This one is for DEBUG purposes only (includes viewer)
+debug_gl:
+	$(CC) $(PARAM) -DDEBUG -c kmeans.cc
+	$(CC) $(PARAM) -DDEBUG -c ../tools/viewer.cc
+	$(CC) $(PARAM) -DDEBUG -c ../tools/Bitmap.cc
+	$(LN) -o kmeans kmeans.o viewer.o Bitmap.o -L$(LIBS) -Wl,-rpath=$(LIBS) -lvl -lGL -lglut
 clean:
 	rm *.o

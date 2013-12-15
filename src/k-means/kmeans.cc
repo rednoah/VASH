@@ -2,43 +2,101 @@
 
 using namespace std;
 
+/* For testing purposes, let's generate a few SIFT keypoints here. */
+void processSIFTPoints(){
+	/* Load an image to compute the SIFT features on */
+	cBitmap bitmap;
+	char filename[32];
+
+	strcpy( filename, "../../media/apple.bmp" );			//From HW2
+	bitmap.loadBitmap( filename );
+	int number_pixels = bitmap.getWidth()*bitmap.getHeight();
+
+	unsigned char * buffer = new unsigned char[number_pixels];
+	bitmap.getGreyscaleBitmap( buffer, number_pixels );		//SIFT accepts greyscale only
+
+	/* Convert to correct format (float/vl_sift_pix) */
+	vl_sift_pix * im = new vl_sift_pix[number_pixels];
+
+	for( int i = 0; i < bitmap.getWidth()*bitmap.getHeight(); i++ )
+		im[i] = static_cast<vl_sift_pix>( buffer[i]/256.0f );		//From testing: Both scaling to [0,1] or leaving at [0,255] are acceptable. vl_sift_pix = float.
+	
+	delete[] buffer;
+
+	#ifdef DEBUG
+	unsigned char * debug_im = new unsigned char[number_pixels*sizeof(Pixel)];
+	bitmap.getBitmap( debug_im, number_pixels*sizeof(Pixel) );
+	#endif
+
+	/* Create SIFT Filter object */
+	VlSiftFilt * s = vl_sift_new( bitmap.getWidth(), bitmap.getHeight(), 3, 3, 0 );
+	vl_sift_process_first_octave( s, im );
+
+	int iteration = 0;
+	do{	
+		/* Detect and retrieve keypoints in this octave */
+		vl_sift_detect( s );
+		const VlSiftKeypoint * keypoint = vl_sift_get_keypoints( s );
+		int num_keys = vl_sift_get_nkeypoints( s );
+
+		#ifdef DEBUG
+		cout << num_keys << " keypoints were detected!" << endl;
+		#endif
+
+		for( int i = 0; i < num_keys; i++ ){
+			#ifdef DEBUG
+			cout << "Keypoint at x=" << ceil(keypoint[i].x) << ", y=" << ceil(keypoint[i].y) << ":" << endl;
+			int coord = ceil(keypoint[i].x)+(ceil(keypoint[i].y)*bitmap.getWidth());				//For visualization of keypoints, you can set an appropriate color here
+			debug_im[coord*4] = 255; debug_im[coord*4+1] = 255;
+			debug_im[coord*4+2] = 0; debug_im[coord*4+3] = 0;
+			#endif
+
+			double angles[4];
+			int num_angles = vl_sift_calc_keypoint_orientations( s, angles, &(keypoint[i]) );
+			cout << "\t" << num_angles << " orientations found!" << endl;
+
+			for( int j = 0; j < num_angles; j++ ){
+				/* Get 128 bin histogram */
+				vl_sift_pix * output = new vl_sift_pix[128];
+				memset( output, 0, 128*sizeof( vl_sift_pix ) );
+
+				vl_sift_calc_keypoint_descriptor( s, output, &(keypoint[i]), angles[j] );
+				//Save feature here!
+				delete[] output;
+			}
+		}
+
+		cout << "Iteration " << ++iteration << endl;
+	}while( vl_sift_process_next_octave( s ) != VL_ERR_EOF );
+
+	#ifdef DEBUG
+	glutViewer( debug_im, bitmap.getWidth(), bitmap.getHeight(), 4, 0, NULL, 600, 600 );	//Displays a bitmap image. See viewer.cc/hh
+	delete[] debug_im;
+	#endif
+
+	vl_sift_delete( s );
+}
+
+
 int main( int argc, char ** argv ){
 	//The centroids can be used for the creation of visual words
 	//After finding features in an image, compute distances to all k centroids
 	//and choose best fit
 	vector<SIFTFeature> dataset;
 
+	#ifdef CLUSTER
+	/* Testing */
 	KMeansClustering c(CLUSTER_K);
 	c.loadDataset( dataset );
 	c.lloyds( dataset );
-
+	
 	VisualWord test;
 	c.convertToVisualWord( test, dataset[0] );
-
+	#endif
 
 
 	/* Testing area */
-	cBitmap bitmap;
-	char filename[32];
-	strcpy( filename, "../../media/A.bmp" );
-	bitmap.loadBitmap( filename );
-	int number_pixels = bitmap.getWidth()*bitmap.getHeight();
-
-	unsigned char * buffer = new unsigned char[number_pixels];
-	bitmap.getGreyscaleBitmap( buffer, number_pixels );
-
-	VlSiftFilt * s = vl_sift_new( bitmap.getWidth(), bitmap.getHeight(), 3, 1, 0 );
-	/*
-	vl_sift_process_first_octave( s, buffer );
-	 ....
-	//vl_sift_process_next_octave( s );
-	vl_sift_detect(...);
-	vl_sift_calc_keypoint_orientations(...);
-	vl_sift_calc_keypoint_descriptor(...);
-	*/
-
-	vl_sift_delete( s );
-	delete[] buffer;
+	processSIFTPoints();
 	return 0;
 }
 

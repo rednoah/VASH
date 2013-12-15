@@ -6,6 +6,7 @@ extern "C" {
 }
 
 #include "../tools/Bitmap.hh"
+#include "../tools/viewer.hh"
 
 #include <vector>
 #include <random>
