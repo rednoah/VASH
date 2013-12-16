@@ -16,7 +16,7 @@ extern "C" {
 
 #include <iostream>
 
-#define CLUSTER_K 50		//Number of clusters = visual words
+#define CLUSTER_K 100		//Number of clusters = visual words
 #define MAX_ITERATIONS 50	//Limit on number of k-means iterations
 
 using namespace std;
@@ -34,11 +34,13 @@ struct SIFTDescriptor{
 //Should we just use best orientation?
 struct SIFTFeature{
  SIFTDescriptor orientations[4];
+ int num_orientations;
 };
 
 //Placeholer for our visual words
 struct VisualWord{
 	int id;
+	int occurences;
 };
 
 
@@ -53,6 +55,10 @@ public:
 	void loadDataset( vector<SIFTFeature> & db );
 	void loadRandomDataset( vector<SIFTFeature> & db );	//This one for testing purposes only!
 
+	//Generate a description for a whole image represented by a vector of features generated previously
+	void generateImageDescription( vector<VisualWord> & description, vector<SIFTFeature> & features );
+	
+	//Find the Visual word for a single feature
 	void convertToVisualWord( VisualWord & result, SIFTFeature & feature );
 
 	//Used to initialize centroids
@@ -67,12 +73,11 @@ public:
 	void addSIFT( SIFTFeature & a, SIFTFeature b );		//Add the SIFT feature vector of b onto a
 
 	//Block distance for SIFT feature
-	double sift_distance( SIFTFeature a, SIFTFeature b );
+	double sift_block_distance( SIFTFeature a, SIFTFeature b );
 private:
 	vector<SIFTFeature> dataset;
 	SIFTFeature * centroids;
 	int k;
-
 
 };
 #endif

@@ -3,7 +3,8 @@
 using namespace std;
 
 /* For testing purposes, let's generate a few SIFT keypoints here. */
-void processSIFTPoints(){
+void processSIFTPoints( vector<SIFTFeature> & storage ){
+
 	/* Load an image to compute the SIFT features on */
 	cBitmap bitmap;
 	char filename[32];
@@ -26,13 +27,13 @@ void processSIFTPoints(){
 	#ifdef DEBUG
 	unsigned char * debug_im = new unsigned char[number_pixels*sizeof(Pixel)];
 	bitmap.getBitmap( debug_im, number_pixels*sizeof(Pixel) );
+	int iteration = 0;
 	#endif
 
 	/* Create SIFT Filter object */
 	VlSiftFilt * s = vl_sift_new( bitmap.getWidth(), bitmap.getHeight(), 3, 3, 0 );
 	vl_sift_process_first_octave( s, im );
 
-	int iteration = 0;
 	do{	
 		/* Detect and retrieve keypoints in this octave */
 		vl_sift_detect( s );
@@ -53,7 +54,16 @@ void processSIFTPoints(){
 
 			double angles[4];
 			int num_angles = vl_sift_calc_keypoint_orientations( s, angles, &(keypoint[i]) );
+
+			#ifdef DEBUG
 			cout << "\t" << num_angles << " orientations found!" << endl;
+			#endif
+
+			if( num_angles == 0 )
+				 continue;
+
+			SIFTFeature f;
+			f.num_orientations = num_angles;
 
 			for( int j = 0; j < num_angles; j++ ){
 				/* Get 128 bin histogram */
@@ -61,12 +71,19 @@ void processSIFTPoints(){
 				memset( output, 0, 128*sizeof( vl_sift_pix ) );
 
 				vl_sift_calc_keypoint_descriptor( s, output, &(keypoint[i]), angles[j] );
+
 				//Save feature here!
+				memcpy( f.orientations[j].histogram, output, 128*sizeof( vl_sift_pix ) );
+
 				delete[] output;
 			}
-		}
 
+			storage.push_back( f );
+		}
+	
+		#ifdef DEBUG
 		cout << "Iteration " << ++iteration << endl;
+		#endif
 	}while( vl_sift_process_next_octave( s ) != VL_ERR_EOF );
 
 	#ifdef DEBUG
@@ -77,26 +94,28 @@ void processSIFTPoints(){
 	vl_sift_delete( s );
 }
 
-
+/* Main entry method for testing */
 int main( int argc, char ** argv ){
-	//The centroids can be used for the creation of visual words
-	//After finding features in an image, compute distances to all k centroids
-	//and choose best fit
 	vector<SIFTFeature> dataset;
-
-	#ifdef CLUSTER
-	/* Testing */
-	KMeansClustering c(CLUSTER_K);
-	c.loadDataset( dataset );
-	c.lloyds( dataset );
-	
-	VisualWord test;
-	c.convertToVisualWord( test, dataset[0] );
-	#endif
-
+	vector<SIFTFeature> sift;
 
 	/* Testing area */
-	processSIFTPoints();
+	processSIFTPoints( sift );							//Call SIFT library, see above
+	dataset = sift;										//Load keypoints
+
+	KMeansClustering c(CLUSTER_K);						//Create Clustering object
+	c.lloyds( dataset );								//Run Clustering algorithm
+
+	cout << "Clustering done" << endl;
+
+	vector<VisualWord> test;							//To save the result of lookup
+	c.generateImageDescription( test, dataset );		//Quantize a feature vector by finding closest centroid (=keyword)
+
+	#ifdef DEBUG
+	for( vector<VisualWord>::iterator it = test.begin(); it != test.end(); it++ )
+		cout << "Visual Word " << it->id << " occured " << it->occurences << " times." << endl;
+	#endif
+
 	return 0;
 }
 
@@ -138,16 +157,41 @@ void KMeansClustering::loadRandomDataset( vector<SIFTFeature> & db ){
 	}
 }
 
+void KMeansClustering::generateImageDescription( vector<VisualWord> & description, vector<SIFTFeature> & features ){
+	int * occurences = new int[features.size()];
+	memset( occurences, 0, sizeof(int)*features.size() );
+
+	/* First, generate the Visual Words by comparing to the clustering */
+	for( vector<SIFTFeature>::iterator it = features.begin(); it != features.end(); it++ ){
+		VisualWord w;
+		convertToVisualWord( w, *it );
+		occurences[w.id]++;	//We are interested in the number of occurences of this word in the image
+	}
+
+	/* Assemble <id,occurences> pair and save */
+	for( unsigned int i = 0; i < features.size(); i++ ){
+		if( occurences[i] == 0 ) continue;
+		VisualWord w;
+		w.id = i;
+		w.occurences = occurences[i];
+		description.push_back( w );
+	}
+
+	delete[] occurences;
+}
+
+
 /*  Convert the SIFTFeature given in @feature to a visual word in @result */
 /* Can this be sped up with hashing? */
 void KMeansClustering::convertToVisualWord( VisualWord & result, SIFTFeature & feature ){
 	double min_distance = HUGE_VAL;
 	int min_index = -1;
+
 	for( int i = 0; i < k; i++ ){
-		double d = sift_distance( feature, centroids[i] );
+		double d = sift_block_distance( feature, centroids[i] );
 
 		if( d < min_distance ){
-			d = min_distance;
+			min_distance = d;
 			min_index = i;
 		}
 	}
@@ -160,7 +204,6 @@ void KMeansClustering::convertToVisualWord( VisualWord & result, SIFTFeature & f
 void KMeansClustering::lloyds( vector<SIFTFeature> & db ){
 	int * c = new int[k];
 	int * assignment = new int[db.size()];
-
 	memset( assignment, 0, db.size()*sizeof( int ) );
 
 	//Should we try to speed up initialisation by hashing?
@@ -182,13 +225,13 @@ void KMeansClustering::lloyds( vector<SIFTFeature> & db ){
 	//At this point, assignment holds our choosen centroids/words
 	//centroids can be used to determine the appropriate word for a keypoint
 
-
 	delete[] assignment;
 	delete[] c;
 }
 
+/* Finds a random number in [0,limit] which has not been drawn before, i.e., is unique */
+/* The point here is that we want k clusters without duplicates */
 void KMeansClustering::getUniqueUniformRandom( int * data, int index, int limit ){
-	bool fresh = true;
 	int seed = (index+1)*time( NULL );
 
 	std::default_random_engine generator( seed );
@@ -196,7 +239,8 @@ void KMeansClustering::getUniqueUniformRandom( int * data, int index, int limit 
 
 	while( true ){
 		int r = distribution(generator);
-	
+		bool fresh = true;	//Fixed a bug here
+
 		for( int j = 0; j < index; j++ )
 			if( data[j] == r ){
 				fresh = false; 
@@ -224,7 +268,7 @@ bool KMeansClustering::doIteration( vector<SIFTFeature> & db, int * assignment )
 
 		//Compute distances to all current centroids
 		for( int i = 0; i < k; i++ ){
-			double d = sift_distance( *it, centroids[i] );
+			double d = sift_block_distance( *it, centroids[i] );
 			if( d < min_dist ){
 				min_dist = d;
 				best_index = i;
@@ -282,7 +326,8 @@ void KMeansClustering::divideSIFT( SIFTFeature & a, double b ){
 }
 
 //Choosing block-distance for this test
-double KMeansClustering::sift_distance( SIFTFeature a, SIFTFeature b ){
+//In the Google Video paper they use Mahalanobis distance. Maybe implement that too?
+double KMeansClustering::sift_block_distance( SIFTFeature a, SIFTFeature b ){
 	double d = 0;
 	for( int i = 0; i < 128; i++ )
 		d += std::abs(a.orientations[0].histogram[i] - b.orientations[0].histogram[i]);
