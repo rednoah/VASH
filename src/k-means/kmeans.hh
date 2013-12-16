@@ -8,6 +8,8 @@ extern "C" {
 #include "../tools/Bitmap.hh"
 #include "../tools/viewer.hh"
 
+#include "../lsh/lsh.hh"
+
 #include <vector>
 #include <random>
 #include <ctime>

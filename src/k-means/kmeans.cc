@@ -88,6 +88,7 @@ void processSIFTPoints( vector<SIFTFeature> & storage ){
 
 	#ifdef DEBUG
 	glutViewer( debug_im, bitmap.getWidth(), bitmap.getHeight(), 4, 0, NULL, 600, 600 );	//Displays a bitmap image. See viewer.cc/hh
+	//glutViewer is a blocking call. Program will stop here until the window is closed
 	delete[] debug_im;
 	#endif
 
@@ -206,14 +207,37 @@ void KMeansClustering::lloyds( vector<SIFTFeature> & db ){
 	int * assignment = new int[db.size()];
 	memset( assignment, 0, db.size()*sizeof( int ) );
 
+	#ifdef LSH
+	LSHasher lsh( k );
+	vector<SIFTFeature> buckets[k];
+
+	for( unsigned int i = 0; i < db.size(); i++ ){
+		double tmp[128];
+		for( int j = 0; j < 128; j++ )	tmp[j] = static_cast<double>(db[i].orientations[0].histogram[j]);
+
+		int index = lsh.hash( tmp, 128, 5 );
+		buckets[index].push_back( db[i] );
+	}
+
+	int j = 0;
+	while( j < k ){
+		for( int i = 0; i < k; i++ ){
+			if( buckets[i].empty() ) continue;
+
+			centroids[j++] = buckets[i][0];
+			if( j >= k ) break;
+		}
+	}
+	#else
 	//Should we try to speed up initialisation by hashing?
 	//Possibly: Hash all features, choose k buckets as centroids
-	//But will it be faster?	
+	//But will it be faster?	=> Test with code above: Not faster, possibly even slower..
 	for( int i = 0; i < k; i++ )
 		getUniqueUniformRandom( c, i, db.size() );	//Depending on k and db.size(), you may also assign w/o checking for uniqueness
 	
 	for( int i = 0; i < k; i++ )
 		centroids[i] = db[c[i]];
+	#endif
 
 	int loop = 0;
 	//k-means is proven to have an upper bound in the number of iterations

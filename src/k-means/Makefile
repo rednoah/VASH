@@ -16,12 +16,14 @@ PARAM=-std=c++0x -I$(INCLUDE) -Wall -Wfatal-errors -g
 all:
 	$(CC) $(PARAM) -c kmeans.cc
 	$(CC) $(PARAM) -c ../tools/Bitmap.cc
-	$(LN) -o kmeans kmeans.o Bitmap.o -L$(LIBS) -Wl,-rpath=$(LIBS) -lvl
+	$(CC) $(PARAM) -c ../lsh/lsh.cc
+	$(LN) -o kmeans kmeans.o lsh.o Bitmap.o -L$(LIBS) -Wl,-rpath=$(LIBS) -lvl
 #This one is for DEBUG purposes only (includes viewer)
 debug_gl:
 	$(CC) $(PARAM) -DDEBUG -c kmeans.cc
 	$(CC) $(PARAM) -DDEBUG -c ../tools/viewer.cc
 	$(CC) $(PARAM) -DDEBUG -c ../tools/Bitmap.cc
-	$(LN) -o kmeans kmeans.o viewer.o Bitmap.o -L$(LIBS) -Wl,-rpath=$(LIBS) -lvl -lGL -lglut
+	$(CC) $(PARAM) -DDEBUG -c ../lsh/lsh.cc
+	$(LN) -o kmeans kmeans.o lsh.o viewer.o Bitmap.o -L$(LIBS) -Wl,-rpath=$(LIBS) -lvl -lGL -lglut
 clean:
 	rm *.o
