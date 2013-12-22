@@ -9,6 +9,7 @@
 
 #include <iostream>
 
+#include "tools/Movie.hh"
 #include "tools/Bitmap.hh"
 #include "tools/viewer.hh"
 
@@ -47,22 +48,6 @@ public:
 	MovieFile( char * f, int i ){
 		strcpy( filename, f );
 		id = i;
-	}
-};
-
-
-//TODO: Placeholder, convert decodeMovie to class
-class Movie{
-public:
-	char filename[128];
-
-	Movie( char * f ){
-		strcpy( filename, f );
-	}
-
-	bool loadNextFrame( cBitmap & b ){
-		
-		return true;
 	}
 };
 

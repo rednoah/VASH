@@ -252,7 +252,17 @@ void cBitmap::setBitmap( unsigned char * bmp, int w, int h, int b ){
 
  if( bmap == NULL ){ fprintf( stderr, "Could not allocate memory!\n" ); exit(1); }
 
- memcpy( bmap, bmp, width*height*sizeof( struct Pixel ) );
+ /* This is not really optimal, but we still keep data as RGBA internally. Time for Templates maybe? */
+ if( b == 3 ){
+  for( int j = 0; j < h; j++ ){
+	for( int i = 0; i < w; i++ ){
+		memcpy( &(bmap[j*width+i]), &(bmp[j*width*3+i*3]), 3*sizeof(unsigned char) );
+		}
+	}
+ }
+	
+ if( b == 4 )
+  memcpy( bmap, bmp, width*height*sizeof( struct Pixel ) );
 }
 
 
