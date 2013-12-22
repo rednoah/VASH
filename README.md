@@ -4,8 +4,25 @@ VASH
 Perceptual Hash project for Videos (MMAI Term Project)
 
 
-
-
+Tutorial: So I have a video, but how can I get all the (I-) Frames out of it?
+Well, you could either write your own decoder. Or you could be smart and use the help of 'ffmpeg' :)
+* A simple tutorial can be found at http://dranger.com/ffmpeg/tutorial01.html
+* Unfortunately, the tutorial is somewhat outdated, many of the functions used are deprecated today.
+* To save you a lot of Google'ing, here is an overview fitted to tutorial1.c:
+  * Use 'avformat_open_input_file' instead of 'av_open_input_file'
+  * Use 'avformat_find_stream_info' instead of 'av_find_stream_info'
+  * Use 'av_dump_format' instead of 'dump_format'
+  * 'AVMEDIA_TYPE_VIDEO' instead of 'CODEC_TYPE_VIDEO'
+  * Use 'avcodec_open2' instead of 'avcodec_open'
+  * Use 'avcodec_decode_video2' instead of 'avcodec_decode_video'
+  * Use 'avformat_close_input' instead of 'av_close_input_file'
+* The biggest change is necessary to replace 'img_convert'. Here we change to libswscale:
+  * First, use 'sws_getContext' before the main loop to get a SwsContext.
+  * Assuming we have the current context in pSWSContext, and the old frame in pFrame.
+  * The new frame shall be pFrameRGB. Then the command inside the main loop is:
+  * 'sws_scale(pSWSContext, (const uint8_t **)pFrame->data, pFrame->linesize, 0, pCodecCtx->height, pFrameRGB->data, pFrameRGB->linesize);'
+* You can get I-Frames by checking whether 'pFrame->pict_type == FF_I_TYPE' after decoding a packet.
+* To see an example, check our repository in src/tools/decodeVideo.c
 
 
 Week 2:
