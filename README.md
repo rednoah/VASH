@@ -4,8 +4,9 @@ VASH
 Perceptual Hash project for Videos (MMAI Term Project)
 
 
-Tutorial: So I have a video, but how can I get all the (I-) Frames out of it?
-Well, you could either write your own decoder. Or you could be smart and use the help of 'ffmpeg' :)
+**Tutorial: Video Decoding w/ FFMPEG**
+
+So by now you have a collection of videos, but how can you retrieve (I-) Frames from it? Well, you could either write your own decoder for every possible format. Or you can be smart and use the help of 'ffmpeg' :)
 * A simple tutorial can be found at http://dranger.com/ffmpeg/tutorial01.html
 * Unfortunately, the tutorial is somewhat outdated, many of the functions used are deprecated today.
 * To save you a lot of Google'ing, here is an overview fitted to tutorial1.c:
@@ -22,10 +23,11 @@ Well, you could either write your own decoder. Or you could be smart and use the
   * The new frame shall be pFrameRGB. Then the command inside the main loop is:
   * 'sws_scale(pSWSContext, (const uint8_t **)pFrame->data, pFrame->linesize, 0, pCodecCtx->height, pFrameRGB->data, pFrameRGB->linesize);'
 * You can get I-Frames by checking whether 'pFrame->pict_type == FF_I_TYPE' after decoding a packet.
+* Required libraries are (In Ubuntu): libavformat, libavcodec, libswscale
 * To see an example, check our repository in src/tools/decodeVideo.c
 
 
-Week 2:
+**Week 2**:
 * Read I-frames directly into memory from video file in C and/or Java
   * Resize all frame to standard resolution? e.g. VGA 640x480, or go with a more modern 16:9 ratio?
   * What if Aspect Ratio doesn't match? Fit into 640x480 without cutting of the image and fill the remainder with black (single-color background won't have any SIFT features) 
@@ -40,7 +42,7 @@ Week 2:
 * Noise function (blur, drop random images, logo overlay, crop, black bars, subtitles, etc) for testing (as set of images)
 
 
-Week 1:
+**Week 1**:
 * Evaluate SIFT features for frame similarity detection using the VLFeat implementation (http://www.vlfeat.org/api/sift.html)
 * Procure (a small set of) real-world sample data (different resolution, noise, and similar attack types)
 * Investigate Bag-of-Words supported by local-sensitive-hashing
