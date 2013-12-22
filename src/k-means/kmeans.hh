@@ -1,49 +1,14 @@
 #ifndef KMEANS_HH
 #define KMEANS_HH
 
-extern "C" {
-#include "sift.h"
-}
-
-#include "../tools/Bitmap.hh"
-#include "../tools/viewer.hh"
-
+#include "../vash.hh"
 #include "../lsh/lsh.hh"
 
-#include <vector>
-#include <random>
-#include <ctime>
-
-#include <cstring>	//For memset etc..
-
-#include <iostream>
 
 #define CLUSTER_K 100		//Number of clusters = visual words
 #define MAX_ITERATIONS 50	//Limit on number of k-means iterations
 
 using namespace std;
-
-//Placeholder
-//This keeps a descriptor for one orientation
-//Therefore, the final vector will be a multiple of this
-struct SIFTDescriptor{
- float histogram[128];
-};
-
-//Theoretically, there should be only one orientation. But practically, we might have ambiguous results
-//SIFT computes up to four possible orientations.
-//Important question: In http://www.vlfeat.org/api/sift.html#sift-intro-detector -> Orientation assignment, it sounds like the orientations are ordered.
-//Should we just use best orientation?
-struct SIFTFeature{
- SIFTDescriptor orientations[4];
- int num_orientations;
-};
-
-//Placeholer for our visual words
-struct VisualWord{
-	int id;
-	int occurences;
-};
 
 
 class KMeansClustering{
@@ -76,6 +41,8 @@ public:
 
 	//Block distance for SIFT feature
 	double sift_block_distance( SIFTFeature a, SIFTFeature b );
+
+	void getCentroids( vector<SIFTFeature> & sift );
 private:
 	vector<SIFTFeature> dataset;
 	SIFTFeature * centroids;
