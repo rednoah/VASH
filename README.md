@@ -47,19 +47,22 @@ So by now you have a collection of videos, but how can you retrieve (I-) Frames 
 * Procure (a small set of) real-world sample data (different resolution, noise, and similar attack types)
 * Investigate Bag-of-Words supported by local-sensitive-hashing
 
-Testdata:
+**Testdata:**
 * 4-times the same 50min video (900-1100 i-frames per video) with different time offsets, encodings, video overlay (logo)
 * random selection of videos files as negative samples (and training data for visual word vocabulary)
 
-Related Work
+**Related Work:**
 (TODO: Describe main contributions of each paper/resource in 1 or 2 sentences!)
-Surveys:
+
+_Surveys:_
 * [1] "Y. Cai, L. Yang: Large-Scale Near-Duplicate Web Video Retrieval: Challenges and Approaches, 2013"
 * [2] "Liu et al.: Near-Duplicate Video Retrieval: Current Research and Future Trends, 2013"
-Main papers:
+
+_Main papers:_
 * [3] "David G. Lowe. 2004. Distinctive Image Features from Scale-Invariant Keypoints. Int. J. Comput. Vision 60, 2 (November 2004)"
 * [4] "Lifeng Shang, Linjun Yang, Fei Wang, Kwok-Ping Chan, and Xian-Sheng Hua. 2010. Real-time large scale near-duplicate web video retrieval. In Proceedings of the international conference on Multimedia (MM '10)"
-Others:
+ 
+_Others:_
 * [5] "Kyung-Wook Park, Jee-Uk Heu, Bo-kyeong Kim, and Dong-Ho Lee. 2013. Real-time near-duplicate web video identification by tracking and matching of spatial features. In Proceedings of the 7th International Conference on Ubiquitous Information Management and Communication (ICUIMC '13)"
 * [6] "Xiangmin Zhou, Xiaofang Zhou, Lei Chen, Athman Bouguettaya, Nong Xiao, and John A. Taylor. 2009. An efficient near-duplicate video shot detection method using shot-based interest points. Trans. Multi. 11, 5 (August 2009), 879-891."
 * [7] "Wan-Lei Zhao and Chong-Wah Ngo. 2009. Scale-rotation invariant pattern entropy for keypoint-based near-duplicate detection. Trans. Img. Proc. 18, 2 (February 2009), 412-423"
