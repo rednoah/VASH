@@ -53,6 +53,14 @@ So by now you have a collection of videos, but how can you retrieve (I-) Frames 
 
 **Related Work:**
 (TODO: Describe main contributions of each paper/resource in 1 or 2 sentences!)
+Video duplicate detection and, more general, Video Retrieval, have been hot research topics in recent years. The surveys in [1] and [2] summarize the state of the art in the field of video duplicate detection. In [1], Cai et al. describe components of a detection system in detail and perform an evaluation of different techniques. Their result shows that performance still suffers for large datasets.
+
+There are two feature groups in video duplicate detection: Global features, such as color histograms, and local features. A state-of-the-art local feature is SIFT [3], which we are using in our project. In his work, Lowe finds keypoints as local extrema in the scale space of the DoG (Difference of Gaussian). Keypoints have scales and orientations, eventually leading to 128-bin histograms, a format often used with other detectors.
+As matching (possibly bipartite matching) of these keypoints between frames is expensive, a quantization method is necessary. In [4], Shang et al. propose the so-called Bag-of-Words concept, simplifying feature vectors to Visual words. The intention is to reduce to problem to a text duplicate detection, for which well-established algorithms exist.
+We implement this concept by clustering SIFT keypoints with k-means.
+
+We also read a number of other papers, which we did not implement, partially due to time reasons.
+(TODO: Remaining papers, shorter description!)
 
 _Surveys:_
 * [1] "Y. Cai, L. Yang: Large-Scale Near-Duplicate Web Video Retrieval: Challenges and Approaches, 2013"
@@ -70,3 +78,6 @@ _Others:_
 * [9] "Lu Liu, Wei Lai, Xian-Sheng Hua, and Shi-Qiang Yang. 2007. Video histogram: a novel video signature for efficient web video duplicate detection. In Proceedings of the 13th International conference on Multimedia Modeling - Volume Part II (MMM'07)"
 * [10] "Jian Zhou and Xiao-Ping Zhang. 2005. Automatic identification of digital video based on shot-level sequence matching. In Proceedings of the 13th annual ACM international conference on Multimedia (MULTIMEDIA '05)"
 * [11] "Guan-Long Wu, Yin-Hsi Kuo, Tzu-Hsuan Chiu, Winston Hsu, and Lexing Xie. 2013. Scalable Mobile Video Retrieval with Sparse Projection Learning and Pseudo Label Mining. IEEE MultiMedia 20, 3 (July 2013)"
+
+_Resources_:
+* [12] VLFeat Library (http://www.vlfeat.org/index.html)
