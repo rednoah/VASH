@@ -43,6 +43,7 @@ public:
 	double sift_block_distance( SIFTFeature a, SIFTFeature b );
 
 	void getCentroids( vector<SIFTFeature> & sift );
+
 private:
 	vector<SIFTFeature> dataset;
 	SIFTFeature * centroids;

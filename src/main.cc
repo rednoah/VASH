@@ -3,8 +3,13 @@
 using namespace std;
 
 void processSIFTPoints( vector<SIFTFeature> & storage, cBitmap & bitmap );
+
 void saveCentroids( vector<SIFTFeature> & c, char * filename );
+void loadCentroids( vector<SIFTFeature> & c, char * filename );
+
 void saveDatabase( vector< pair<MovieFile, vector<VisualWord> > > & db, char * filename );
+
+double sift_block_distance( SIFTFeature a, SIFTFeature b );	//This double definition is not ideal.
 
 int main( int argc, char ** argv ){
 	bool train = false;
@@ -46,6 +51,8 @@ int main( int argc, char ** argv ){
 
 			if( !queries ) break;
 
+			cout << "Reading file" << filename << endl;
+
 			cBitmap b;
 
 			Movie m( filename );
@@ -53,12 +60,18 @@ int main( int argc, char ** argv ){
 			vector<SIFTFeature> sift;
 
 			while( m.loadNextFrame( b ) ){
+				vector<SIFTFeature> tmp;
 
-				processSIFTPoints( sift, b );
-				clustering.insert( clustering.end(), sift.begin(), sift.end() );
+				processSIFTPoints( tmp, b );
+				clustering.insert( clustering.end(), tmp.begin(), tmp.end() );	
+				sift.insert( sift.end(), tmp.begin(), tmp.end() );
+				tmp.clear();
 			}
 
 			dataset.push_back( make_pair( f, sift ) );
+			cout << "Clustering size is: " << clustering.size() << endl;
+			sift.clear();
+
 		}
 
 		queries.close();
@@ -69,6 +82,8 @@ int main( int argc, char ** argv ){
 		KMeansClustering c(CLUSTER_K);
 		c.lloyds( clustering );
 
+		clustering.clear();
+
 		c.getCentroids( centroids );
 		
 		//Save centroids (Visual Words) to File
@@ -76,20 +91,20 @@ int main( int argc, char ** argv ){
 		strcpy( centroidFile, "centroids.db" );
 
 		saveCentroids( centroids, centroidFile );
-
-		//Save visual word representation to database
+exit(1);
+		//TODO: So far, we save all sift features of the whole movie in one. Need some e.g., shot-level signature!
+		//Save visual word representation to a database
 		char datasetFile[128];
 		strcpy( datasetFile, "dataset.db" );
 
 		vector<pair<MovieFile, vector<VisualWord> > > db;
 		for( vector<pair<MovieFile,vector<SIFTFeature> > >::iterator it = dataset.begin(); it != dataset.end(); it++ ){
+			//For each movie
 			vector<VisualWord> v;
 
-			for( vector<SIFTFeature>::iterator fit = it->second.begin(); fit != it->second.end(); fit++ ){
-				VisualWord w;
-				c.convertToVisualWord( w, *fit );
-				v.push_back( w );
-			}
+			//Generate a histogram of Visual Words: <id, #occurences>
+			c.generateImageDescription( v, it->second );	//Actually more like MovieDescription, see TODO above.
+
 			db.push_back( make_pair( it->first, v ) );
 		}
 
@@ -99,10 +114,55 @@ int main( int argc, char ** argv ){
 	/* Test phase */
 	if( test ){
 		//Decode test video, train SIFT Features
+		Movie m( testfile );
+		cBitmap b;
+		vector<SIFTFeature> sift;
+		vector<SIFTFeature> centroids;		
+
+		while( m.loadNextFrame( b ) ){
+			processSIFTPoints( sift, b );
+		}
 
 		//Load VW, translate features
+		char centroidFile[128];
+		strcpy( centroidFile, "centroids.db" );
+
+		loadCentroids( centroids, centroidFile );
+
+		int * occurences = new int[centroids.size()];
+		memset( occurences, 0, centroids.size()*sizeof(int) );
+
+		for( vector<SIFTFeature>::iterator it = sift.begin(); it != sift.end(); it++ ){
+			double min_distance = HUGE_VAL;
+			int min_index = -1;
+
+			for( unsigned int i = 0; i < centroids.size(); i++ ){
+				double d = sift_block_distance( *it, centroids[i] );
+
+				if( d < min_distance ){
+					min_distance = d;
+					min_index = i;
+				}
+			}
+
+			occurences[min_index]++;
+		}
+
+		vector<VisualWord> v;
+		for( unsigned int i = 0; i < centroids.size(); i++ ){
+			if( occurences[i] == 0 ) continue;
+			VisualWord w;
+			w.id = i;
+			w.occurences = occurences[i];
+			v.push_back( w );
+		}
+
+		delete[] occurences;
+		sift.clear();
+		centroids.clear();
 
 		//Compare representation to others in database
+		
 
 		//Output result
 	}
@@ -115,8 +175,29 @@ void saveCentroids( vector<SIFTFeature> & c, char * filename ){
 	std::ofstream data;
 	data.open(filename, ifstream::out|ifstream::binary );
 
+	/* Only saving one orientation for now */
 	for( vector<SIFTFeature>::iterator it = c.begin(); it != c.end(); it++ ){
-		data.write( reinterpret_cast<char *>(it->orientations[0].histogram), sizeof(SIFTDescriptor) );
+		data.write( reinterpret_cast<char *>(&(it->orientations[0])), sizeof(SIFTDescriptor) );
+	}
+	data.close();
+}
+
+void loadCentroids( vector<SIFTFeature> & c, char * filename ){
+	std::ifstream data;
+	data.open( filename, ifstream::in|ifstream::binary );
+
+	if( !data ) exit(1);	//Could not open file
+
+	/* Only loading one orientation for each SIFTFeature */
+	while( data ){
+		SIFTDescriptor s;
+		SIFTFeature f;
+		memset( &f, 0, sizeof( SIFTFeature ) );
+
+		data.read( reinterpret_cast<char *>(&s), sizeof(SIFTDescriptor) );
+		memcpy( &(f.orientations[0]), &s, sizeof(SIFTDescriptor) );
+		f.num_orientations = 1;		
+		c.push_back( f );
 	}
 	data.close();
 }
@@ -223,5 +304,12 @@ void processSIFTPoints( vector<SIFTFeature> & storage, cBitmap & bitmap ){
 	#endif
 
 	vl_sift_delete( s );
+}
+
+double sift_block_distance( SIFTFeature a, SIFTFeature b ){
+	double d = 0;
+	for( int i = 0; i < 128; i++ )
+		d += std::abs(a.orientations[0].histogram[i] - b.orientations[0].histogram[i]);
+	return d;
 }
 

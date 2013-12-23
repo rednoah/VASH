@@ -150,7 +150,7 @@ void KMeansClustering::lloyds( vector<SIFTFeature> & db ){
 	int loop = 0;
 	//k-means is proven to have an upper bound in the number of iterations
 	//If this goes to infinite loop, there is a bug!
-	while( doIteration( db, assignment ) ){ loop++; }	
+	while( doIteration( db, assignment ) ){ loop++; cout << "Clustering Iteration " << loop << " finished" << endl;}	
 
 	cout << "Required iterations were: " << loop << endl;
 
@@ -201,6 +201,7 @@ bool KMeansClustering::doIteration( vector<SIFTFeature> & db, int * assignment )
 		//Compute distances to all current centroids
 		for( int i = 0; i < k; i++ ){
 			double d = sift_block_distance( *it, centroids[i] );
+
 			if( d < min_dist ){
 				min_dist = d;
 				best_index = i;
@@ -226,14 +227,15 @@ bool KMeansClustering::doIteration( vector<SIFTFeature> & db, int * assignment )
 
 	/* Check if this iteration changed anything */
 	bool changes = false;
-
+    int num_changes = 0;
 	for( unsigned int i = 0; i < db.size(); i++ ){
 		if( assignment[i] != old_assignment[i] ){
 			changes = true;
-			break;
+			//break;
+			num_changes++;
 		}
 	}
-
+	cout << num_changes << " Objects had to be switched!" << endl;
 
 	for( int i = 0; i < k; i++ )
 		inverted_list[i].clear();
@@ -252,6 +254,7 @@ void KMeansClustering::addSIFT( SIFTFeature & a, SIFTFeature b ){
 
 //Divide SIFT vector a by the scalar b
 void KMeansClustering::divideSIFT( SIFTFeature & a, double b ){
+	if( b == 0 ) return;
 	for( int i = 0; i < 128; i++ ){
 		a.orientations[0].histogram[i] /= b;
 	}

@@ -130,11 +130,13 @@ bool Movie::loadNextFrame( cBitmap & b ){
 					memcpy( tmp+3*i*width, pFrameRGB->data[0]+i*pFrameRGB->linesize[0], width*3 );
 
 				b.setBitmap( reinterpret_cast<unsigned char*>(tmp), width, height, 3 ); 
+
 				delete[] tmp;
-				break;
+				av_free_packet(&packet);
+				return true;
 			}
 		}    
 		av_free_packet(&packet);
 	}
-	return true;
+	return false;
 }
