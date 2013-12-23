@@ -6,10 +6,10 @@ Perceptual Hash project for Videos (MMAI Term Project)
 
 **Tutorial: Video Decoding w/ FFMPEG**
 
-So by now you have a collection of videos, but how can you retrieve (I-) Frames from it? Well, you could either write your own decoder for every possible format. Or you can be smart and use the help of 'ffmpeg' :)
-* A simple tutorial can be found at http://dranger.com/ffmpeg/tutorial01.html
+When working with a collection of videos, it will be necessary to efficiently decode frames no matter what source format the data has. As a consequence, you can either write your own decoder for every possible format. Or you can be smart and use the help of a tool such as 'ffmpeg' :) The following describes briefly how to invoke ffmpeg decoding from within your C/C++ application:
+* An introductory tutorial can be found at http://dranger.com/ffmpeg/tutorial01.html
 * Unfortunately, the tutorial is somewhat outdated, many of the functions used are deprecated today.
-* To save you a lot of Google'ing, here is an overview fitted to tutorial1.c:
+* To save you a lot of Google'ing, we provide you with an overview of necessary changes to tutorial1.c:
   * Use 'avformat_open_input_file' instead of 'av_open_input_file'
   * Use 'avformat_find_stream_info' instead of 'av_find_stream_info'
   * Use 'av_dump_format' instead of 'dump_format'
@@ -17,14 +17,15 @@ So by now you have a collection of videos, but how can you retrieve (I-) Frames 
   * Use 'avcodec_open2' instead of 'avcodec_open'
   * Use 'avcodec_decode_video2' instead of 'avcodec_decode_video'
   * Use 'avformat_close_input' instead of 'av_close_input_file'
-* The biggest change is necessary to replace 'img_convert'. Here we change to libswscale:
+* The biggest change is necessary to replace 'img_convert'. Here we make use of libswscale:
   * First, use 'sws_getContext' before the main loop to get a SwsContext.
   * Assuming we have the current context in pSWSContext, and the old frame in pFrame.
   * The new frame shall be pFrameRGB. Then the command inside the main loop is:
   * 'sws_scale(pSWSContext, (const uint8_t **)pFrame->data, pFrame->linesize, 0, pCodecCtx->height, pFrameRGB->data, pFrameRGB->linesize);'
-* You can get I-Frames by checking whether 'pFrame->pict_type == FF_I_TYPE' after decoding a packet.
-* Required libraries are (In Ubuntu): libavformat, libavcodec, libswscale
-* To see an example, check our repository in src/tools/decodeVideo.c
+  * This gives you a RGB bitmap (all channels are located in pFrameRGB->data[0]!)
+* You can discard non-I-Frames by checking whether 'pFrame->pict_type == FF_I_TYPE' after decoding a packet.
+* Required libraries are: libavformat, libavcodec, libswscale
+* To see a full example, check our repository in src/tools/decodeVideo.c or src/tools/Movie.cc
 
 
 **Week 2**:
@@ -59,9 +60,9 @@ There are two feature groups in video duplicate detection: Global features, such
 As matching (possibly bipartite matching) of these keypoints between frames is expensive, a quantization method is necessary. In [4], Shang et al. propose the so-called Bag-of-Words concept, simplifying feature vectors to Visual words. The intention is to reduce to problem to a text duplicate detection, for which well-established algorithms exist.
 We implement this concept by clustering SIFT keypoints with k-means.
 
-We also read a number of other papers, which we did not implement, partially due to time reasons. Park et al. propose in [5] a local feature and a framework to identify duplicate web videos. Shot detection is performed and a signature generated, which describes the occurences of a feature in the shot. In [6] a new strategy to select frames of a video is introduced and performance is increased by elimination of rare features in such frames. Local features and BoW are used in [7] together with a new algorithm that detects temporal patterns in those features. Global features, including Block-based color histograms are used in [8]. (...)
+We also read a number of other papers, which we did not implement, partially due to time reasons. Park et al. propose in [5] a local feature and a framework to identify duplicate web videos. Shot detection is performed and a signature generated, which describes the occurences of a feature in the shot. In [6] a new strategy to select frames of a video is introduced and performance is increased by elimination of rare features in such frames. Local features and BoW are used in [7] together with a new algorithm that detects temporal patterns in those features. Sarkar et al. propose a new distance measure in [8]. Furthermore, search algorithms are developed supported by a pruning technique for fast runtime. Liu et al. propose Video Histograms in [9], where a bin of the histogram represents the number of frames that are similar to a predefined set of seed vectors. [10] uses chromacity histograms as features and uses Dynamic Programming to match video shots based on the features.
 
-(TODO: Remaining papers, shorter description!)
+In our implementation, we are using the popular VLFeat Library to implement a SIFT Keypoint detector. BoW quantizer and matching are implemented by ourselves however.
 
 _Surveys:_
 * [1] "Y. Cai, L. Yang: Large-Scale Near-Duplicate Web Video Retrieval: Challenges and Approaches, 2013"
@@ -78,7 +79,6 @@ _Others:_
 * [8] "Efficient and Robust Detection of Duplicate Videos in a Large Database. Anindya Sarkar, Vishwakarma Singh, Pratim Ghosh, Bangalore S. Manjunath, and Ambuj K. Singh. IEEE Trans. Circuits Syst. Video Techn. 20(6):870-885 (2010)"
 * [9] "Lu Liu, Wei Lai, Xian-Sheng Hua, and Shi-Qiang Yang. 2007. Video histogram: a novel video signature for efficient web video duplicate detection. In Proceedings of the 13th International conference on Multimedia Modeling - Volume Part II (MMM'07)"
 * [10] "Jian Zhou and Xiao-Ping Zhang. 2005. Automatic identification of digital video based on shot-level sequence matching. In Proceedings of the 13th annual ACM international conference on Multimedia (MULTIMEDIA '05)"
-* [11] "Guan-Long Wu, Yin-Hsi Kuo, Tzu-Hsuan Chiu, Winston Hsu, and Lexing Xie. 2013. Scalable Mobile Video Retrieval with Sparse Projection Learning and Pseudo Label Mining. IEEE MultiMedia 20, 3 (July 2013)"
 
 _Resources_:
 * [12] VLFeat Library (http://www.vlfeat.org/index.html)
