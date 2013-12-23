@@ -52,14 +52,15 @@ So by now you have a collection of videos, but how can you retrieve (I-) Frames 
 * random selection of videos files as negative samples (and training data for visual word vocabulary)
 
 **Related Work:**
-(TODO: Describe main contributions of each paper/resource in 1 or 2 sentences!)
+
 Video duplicate detection and, more general, Video Retrieval, have been hot research topics in recent years. The surveys in [1] and [2] summarize the state of the art in the field of video duplicate detection. In [1], Cai et al. describe components of a detection system in detail and perform an evaluation of different techniques. Their result shows that performance still suffers for large datasets.
 
 There are two feature groups in video duplicate detection: Global features, such as color histograms, and local features. A state-of-the-art local feature is SIFT [3], which we are using in our project. In his work, Lowe finds keypoints as local extrema in the scale space of the DoG (Difference of Gaussian). Keypoints have scales and orientations, eventually leading to 128-bin histograms, a format often used with other detectors.
 As matching (possibly bipartite matching) of these keypoints between frames is expensive, a quantization method is necessary. In [4], Shang et al. propose the so-called Bag-of-Words concept, simplifying feature vectors to Visual words. The intention is to reduce to problem to a text duplicate detection, for which well-established algorithms exist.
 We implement this concept by clustering SIFT keypoints with k-means.
 
-We also read a number of other papers, which we did not implement, partially due to time reasons.
+We also read a number of other papers, which we did not implement, partially due to time reasons. Park et al. propose in [5] a local feature and a framework to identify duplicate web videos. Shot detection is performed and a signature generated, which describes the occurences of a feature in the shot. In [6] a new strategy to select frames of a video is introduced and performance is increased by elimination of rare features in such frames. Local features and BoW are used in [7] together with a new algorithm that detects temporal patterns in those features. Global features, including Block-based color histograms are used in [8]. (...)
+
 (TODO: Remaining papers, shorter description!)
 
 _Surveys:_
