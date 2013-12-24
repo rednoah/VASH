@@ -3,6 +3,12 @@ VASH
 
 Perceptual Hash project for Videos (MMAI Term Project)
 
+Students: 
+* Sebastian Agethen (蔡格昇) (D01944015)
+* Reinhard Pointner (瑞尼) (???)
+* 蔡宗諭 (???)
+
+
 Introduction
 ------------
 
@@ -20,6 +26,7 @@ This project proposes a perceptual video hash algorithm to identify videos based
 
 Implementation Details
 ----------------------
+_Dec. 22nd 2013_ 
 
 **Tutorial: Video Decoding w/ FFMPEG**
 
@@ -45,6 +52,10 @@ When working with a collection of videos, it will be necessary to efficiently de
 * To see a full example, check our repository in src/tools/decodeVideo.c or src/tools/Movie.cc
 
 
+Challenges
+----------
+_Dec. 18th 2013_
+
 **Week 2**:
 * Read I-frames directly into memory from video file in C and/or Java
   * Resize all frame to standard resolution? e.g. VGA 640x480, or go with a more modern 16:9 ratio?
@@ -60,6 +71,8 @@ When working with a collection of videos, it will be necessary to efficiently de
 * Noise function (blur, drop random images, logo overlay, crop, black bars, subtitles, etc) for testing (as set of images)
 
 
+_Dec 9th 2013_ 
+
 **Week 1**:
 * Evaluate SIFT features for frame similarity detection using the VLFeat implementation (http://www.vlfeat.org/api/sift.html)
 * Procure (a small set of) real-world sample data (different resolution, noise, and similar attack types)
@@ -69,7 +82,8 @@ When working with a collection of videos, it will be necessary to efficiently de
 * 4-times the same 50min video (900-1100 i-frames per video) with different time offsets, encodings, video overlay (logo)
 * random selection of videos files as negative samples (and training data for visual word vocabulary)
 
-**Related Work:**
+Related Work
+------------
 
 Video duplicate detection and, more general, Video Retrieval, have been hot research topics in recent years. The surveys in [1] and [2] summarize the state of the art in the field of video duplicate detection. In [1], Cai et al. describe components of a detection system in detail and perform an evaluation of different techniques. Their result shows that performance still suffers for large datasets.
 
@@ -79,7 +93,7 @@ We implement this concept by clustering SIFT keypoints with k-means.
 
 We also read a number of other papers, which we did not implement, partially due to time reasons. Park et al. propose in [5] a local feature and a framework to identify duplicate web videos. Shot detection is performed and a signature generated, which describes the occurences of a feature in the shot. In [6] a new strategy to select frames of a video is introduced and performance is increased by elimination of rare features in such frames. Local features and BoW are used in [7] together with a new algorithm that detects temporal patterns in those features. Sarkar et al. propose a new distance measure in [8]. Furthermore, search algorithms are developed supported by a pruning technique for fast runtime. Liu et al. propose Video Histograms in [9], where a bin of the histogram represents the number of frames that are similar to a predefined set of seed vectors. [10] uses chromacity histograms as features and uses Dynamic Programming to match video shots based on the features.
 
-In our implementation, we are using the popular VLFeat Library to implement a SIFT Keypoint detector. BoW quantizer and matching are implemented by ourselves however.
+In our implementation, we are using the popular VLFeat Library [11] to implement a SIFT Keypoint detector. BoW quantizer and matching are implemented by ourselves however.
 
 _Surveys:_
 * [1] "Y. Cai, L. Yang: Large-Scale Near-Duplicate Web Video Retrieval: Challenges and Approaches, 2013"
@@ -98,4 +112,4 @@ _Others:_
 * [10] "Jian Zhou and Xiao-Ping Zhang. 2005. Automatic identification of digital video based on shot-level sequence matching. In Proceedings of the 13th annual ACM international conference on Multimedia (MULTIMEDIA '05)"
 
 _Resources_:
-* [12] VLFeat Library (http://www.vlfeat.org/index.html)
+* [11] VLFeat Library (http://www.vlfeat.org/index.html)
