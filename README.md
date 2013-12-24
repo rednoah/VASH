@@ -5,7 +5,7 @@ Perceptual Hash project for Videos (MMAI Term Project)
 
 Students: 
 * Sebastian Agethen (蔡格昇) (D01944015)
-* Reinhard Pointner (瑞尼) (???)
+* Reinhard Pointner (郝瑞尼) (R02922148)
 * 蔡宗諭 (???)
 
 
