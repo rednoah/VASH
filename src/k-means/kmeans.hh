@@ -1,6 +1,7 @@
 #ifndef KMEANS_HH
 #define KMEANS_HH
 
+#include "../tools/math.hh"
 #include "../vash.hh"
 #include "../lsh/lsh.hh"
 
@@ -35,12 +36,9 @@ public:
 	void lloyds( vector<SIFTFeature> & db );
 
 	//Do a single iteration of "Lloyds" algorithm.
-	bool doIteration( vector<SIFTFeature> & db, int * assignment );
+	int doIteration( vector<SIFTFeature> & db, int * assignment );
 	void divideSIFT( SIFTFeature & a, double b );		//Divide SIFT vector a by the scalar b
 	void addSIFT( SIFTFeature & a, SIFTFeature b );		//Add the SIFT feature vector of b onto a
-
-	//Block distance for SIFT feature
-	double sift_block_distance( SIFTFeature a, SIFTFeature b );
 
 	void getCentroids( vector<SIFTFeature> & sift );
 

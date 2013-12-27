@@ -2,15 +2,6 @@
 
 using namespace std;
 
-void processSIFTPoints( vector<SIFTFeature> & storage, cBitmap & bitmap );
-
-void saveCentroids( vector<SIFTFeature> & c, char * filename );
-void loadCentroids( vector<SIFTFeature> & c, char * filename );
-
-void saveDatabase( vector< pair<MovieFile, vector<VisualWord> > > & db, char * filename );
-
-double sift_block_distance( SIFTFeature a, SIFTFeature b );	//This double definition is not ideal.
-
 int main( int argc, char ** argv ){
 	bool train = false;
 	bool test = false;
@@ -23,12 +14,12 @@ int main( int argc, char ** argv ){
 
 	if( strcmp( argv[1], "train" ) == 0 ){
 		train = true;
-		strcpy( fileset, argv[2] );
+		strcpy( fileset, argv[2] );		//A textfile specifying all videos to train
 	}
 
 	if( strcmp( argv[1], "test" ) == 0 ){
 		test = true;
-		strcpy( testfile, argv[2] );
+		strcpy( testfile, argv[2] );	//A video to test
 	}
 
 
@@ -88,16 +79,17 @@ int main( int argc, char ** argv ){
 		
 		//Save centroids (Visual Words) to File
 		char centroidFile[128];
-		strcpy( centroidFile, "centroids.db" );
+		strcpy( centroidFile, CENTROID_FILE );
 
 		saveCentroids( centroids, centroidFile );
-exit(1);
+
 		//TODO: So far, we save all sift features of the whole movie in one. Need some e.g., shot-level signature!
 		//Save visual word representation to a database
 		char datasetFile[128];
-		strcpy( datasetFile, "dataset.db" );
+		strcpy( datasetFile, DATASET_FILE );
 
 		vector<pair<MovieFile, vector<VisualWord> > > db;
+
 		for( vector<pair<MovieFile,vector<SIFTFeature> > >::iterator it = dataset.begin(); it != dataset.end(); it++ ){
 			//For each movie
 			vector<VisualWord> v;
@@ -125,7 +117,7 @@ exit(1);
 
 		//Load VW, translate features
 		char centroidFile[128];
-		strcpy( centroidFile, "centroids.db" );
+		strcpy( centroidFile, CENTROID_FILE );
 
 		loadCentroids( centroids, centroidFile );
 
@@ -162,9 +154,27 @@ exit(1);
 		centroids.clear();
 
 		//Compare representation to others in database
-		
+		char datasetFile[128];
+		strcpy( datasetFile, DATASET_FILE );
+
+		vector<pair<MovieFile, vector<VisualWord> > > db;
+		loadDatabase( db, datasetFile );
+
+		double min_dist = HUGE_VAL;
+		vector< pair<MovieFile, vector<VisualWord> > >::iterator closest_match;
+
+		for( vector< pair<MovieFile, vector<VisualWord> > >::iterator it = db.begin(); it != db.end(); it++ ){
+			double d = vw_block_distance( it->second, v );
+
+			if( d < min_dist ){
+				min_dist = d;
+				closest_match = it;
+			}
+		}
 
 		//Output result
+		cout << "Best match is: " << closest_match->first.filename << " (ID: " << closest_match->first.id << ")" << endl;
+		cout << "Distance to best match was: " << min_dist << endl;
 	}
 
 	return 0;
@@ -177,7 +187,7 @@ void saveCentroids( vector<SIFTFeature> & c, char * filename ){
 
 	/* Only saving one orientation for now */
 	for( vector<SIFTFeature>::iterator it = c.begin(); it != c.end(); it++ ){
-		data.write( reinterpret_cast<char *>(&(it->orientations[0])), sizeof(SIFTDescriptor) );
+		data.write( reinterpret_cast<char *>(&(*it)), sizeof(SIFTFeature) );
 	}
 	data.close();
 }
@@ -189,22 +199,50 @@ void loadCentroids( vector<SIFTFeature> & c, char * filename ){
 	if( !data ) exit(1);	//Could not open file
 
 	/* Only loading one orientation for each SIFTFeature */
-	while( data ){
-		SIFTDescriptor s;
+	while( true ){
 		SIFTFeature f;
 		memset( &f, 0, sizeof( SIFTFeature ) );
 
-		data.read( reinterpret_cast<char *>(&s), sizeof(SIFTDescriptor) );
-		memcpy( &(f.orientations[0]), &s, sizeof(SIFTDescriptor) );
-		f.num_orientations = 1;		
+		data.read( reinterpret_cast<char *>(&f), sizeof(SIFTFeature) );
+
+		if( !data ) break;	//EOF bit is only set after eof was reached DURING a read. If the previous loop ended on the last byte, no eof is set.
+
 		c.push_back( f );
 	}
 	data.close();
+
+}
+
+void loadDatabase( vector< pair<MovieFile, vector<VisualWord> > > & db, char * filename ){
+	std::ifstream data;
+	data.open( filename, ifstream::in|ifstream::binary );
+
+	if( !data ) exit(1);
+
+	while( true ){
+		MovieFile mf;
+		vector<VisualWord> vv;
+
+		int objects = 0;
+
+		data.read( reinterpret_cast<char *>(&mf), sizeof(MovieFile) );
+
+		if( !data ) break;	//EOF bit is only set after eof was reached DURING a read. If the previous loop ended on the last byte, no eof is set.
+
+		data.read( reinterpret_cast<char *>(&objects), sizeof(int) );
+
+		for( int i = 0; i < objects; i++ ){
+			VisualWord v;
+			data.read( reinterpret_cast<char *>(&v), sizeof(VisualWord) );
+			vv.push_back( v );
+		}
+		db.push_back( make_pair( mf, vv ) );
+	}
 }
 
 void saveDatabase( vector< pair<MovieFile, vector<VisualWord> > > & db, char * filename ){
 	std::ofstream data;
-	data.open(filename, ifstream::out|ifstream::binary );
+	data.open( filename, ifstream::out|ifstream::binary );
 
 	for( vector< pair<MovieFile, vector<VisualWord> > >::iterator it = db.begin(); it != db.end(); it++ ){
 		int num = it->second.size();
@@ -270,13 +308,9 @@ void processSIFTPoints( vector<SIFTFeature> & storage, cBitmap & bitmap ){
 			cout << "\t" << num_angles << " orientations found!" << endl;
 			#endif
 
-			if( num_angles == 0 )
-				 continue;
-
-			SIFTFeature f;
-			f.num_orientations = num_angles;
-
 			for( int j = 0; j < num_angles; j++ ){
+				SIFTFeature f;
+
 				/* Get 128 bin histogram */
 				vl_sift_pix * output = new vl_sift_pix[128];
 				memset( output, 0, 128*sizeof( vl_sift_pix ) );
@@ -284,12 +318,12 @@ void processSIFTPoints( vector<SIFTFeature> & storage, cBitmap & bitmap ){
 				vl_sift_calc_keypoint_descriptor( s, output, &(keypoint[i]), angles[j] );
 
 				//Save feature here!
-				memcpy( f.orientations[j].histogram, output, 128*sizeof( vl_sift_pix ) );
+				memcpy( f.histogram, output, 128*sizeof( vl_sift_pix ) );
+				storage.push_back( f );
 
 				delete[] output;
 			}
 
-			storage.push_back( f );
 		}
 	
 		#ifdef DEBUG
@@ -304,12 +338,5 @@ void processSIFTPoints( vector<SIFTFeature> & storage, cBitmap & bitmap ){
 	#endif
 
 	vl_sift_delete( s );
-}
-
-double sift_block_distance( SIFTFeature a, SIFTFeature b ){
-	double d = 0;
-	for( int i = 0; i < 128; i++ )
-		d += std::abs(a.orientations[0].histogram[i] - b.orientations[0].histogram[i]);
-	return d;
 }
 

@@ -59,7 +59,7 @@ void KMeansClustering::loadRandomDataset( vector<SIFTFeature> & db ){
 		memset( &s, 0, sizeof( SIFTFeature ) );
 
 		for( int j = 0; j < dim; j++ ){
-  			s.orientations[0].histogram[j] = distribution(generator);
+  			s.histogram[j] = distribution(generator);
 		}
 
 		db.push_back( s );
@@ -112,31 +112,10 @@ void KMeansClustering::convertToVisualWord( VisualWord & result, SIFTFeature & f
 //Clustering algorithm
 void KMeansClustering::lloyds( vector<SIFTFeature> & db ){
 	int * c = new int[k];
+	int size = db.size();
 	int * assignment = new int[db.size()];
 	memset( assignment, 0, db.size()*sizeof( int ) );
 
-	#ifdef LSH
-	LSHasher lsh( k );
-	vector<SIFTFeature> buckets[k];
-
-	for( unsigned int i = 0; i < db.size(); i++ ){
-		double tmp[128];
-		for( int j = 0; j < 128; j++ )	tmp[j] = static_cast<double>(db[i].orientations[0].histogram[j]);
-
-		int index = lsh.hash( tmp, 128, 5 );
-		buckets[index].push_back( db[i] );
-	}
-
-	int j = 0;
-	while( j < k ){
-		for( int i = 0; i < k; i++ ){
-			if( buckets[i].empty() ) continue;
-
-			centroids[j++] = buckets[i][0];
-			if( j >= k ) break;
-		}
-	}
-	#else
 	//Should we try to speed up initialisation by hashing?
 	//Possibly: Hash all features, choose k buckets as centroids
 	//But will it be faster?	=> Test with code above: Not faster, possibly even slower..
@@ -145,12 +124,15 @@ void KMeansClustering::lloyds( vector<SIFTFeature> & db ){
 	
 	for( int i = 0; i < k; i++ )
 		centroids[i] = db[c[i]];
-	#endif
 
 	int loop = 0;
 	//k-means is proven to have an upper bound in the number of iterations
 	//If this goes to infinite loop, there is a bug!
-	while( doIteration( db, assignment ) ){ loop++; cout << "Clustering Iteration " << loop << " finished" << endl;}	
+	while( int n_changes = doIteration( db, assignment ) ){ 
+		loop++; 
+		if( n_changes < size*0.005f )	//The last few permille can take quite long. Break early~
+			break; 
+	}
 
 	cout << "Required iterations were: " << loop << endl;
 
@@ -187,7 +169,7 @@ void KMeansClustering::getUniqueUniformRandom( int * data, int index, int limit 
 }
 
 //One iteration of k-means (lloyds)
-bool KMeansClustering::doIteration( vector<SIFTFeature> & db, int * assignment ){
+int KMeansClustering::doIteration( vector<SIFTFeature> & db, int * assignment ){
 	int * old_assignment = new int[db.size()];
 	memcpy( old_assignment, assignment, db.size()*sizeof( int ) );
 
@@ -226,11 +208,11 @@ bool KMeansClustering::doIteration( vector<SIFTFeature> & db, int * assignment )
 	}
 
 	/* Check if this iteration changed anything */
-	bool changes = false;
+	//bool changes = false;
     int num_changes = 0;
 	for( unsigned int i = 0; i < db.size(); i++ ){
 		if( assignment[i] != old_assignment[i] ){
-			changes = true;
+			//changes = true;
 			//break;
 			num_changes++;
 		}
@@ -242,13 +224,14 @@ bool KMeansClustering::doIteration( vector<SIFTFeature> & db, int * assignment )
 
 	delete[] inverted_list;
 	delete[] old_assignment;
-	return changes;
+//	return changes;
+	return num_changes;
 }
 
 //Add the SIFT feature vector of b onto a
 void KMeansClustering::addSIFT( SIFTFeature & a, SIFTFeature b ){
 	for( int i = 0; i < 128; i++ )
-		a.orientations[0].histogram[i] += b.orientations[0].histogram[i];
+		a.histogram[i] += b.histogram[i];
 	
 }
 
@@ -256,17 +239,8 @@ void KMeansClustering::addSIFT( SIFTFeature & a, SIFTFeature b ){
 void KMeansClustering::divideSIFT( SIFTFeature & a, double b ){
 	if( b == 0 ) return;
 	for( int i = 0; i < 128; i++ ){
-		a.orientations[0].histogram[i] /= b;
+		a.histogram[i] /= b;
 	}
-}
-
-//Choosing block-distance for this test
-//In the Google Video paper they use Mahalanobis distance. Maybe implement that too?
-double KMeansClustering::sift_block_distance( SIFTFeature a, SIFTFeature b ){
-	double d = 0;
-	for( int i = 0; i < 128; i++ )
-		d += std::abs(a.orientations[0].histogram[i] - b.orientations[0].histogram[i]);
-	return d;
 }
 
 void KMeansClustering::getCentroids( vector<SIFTFeature> & sift ){
