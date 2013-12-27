@@ -24,7 +24,7 @@ all:
 #This one is for DEBUG purposes only (includes viewer)
 debug_gl:
 	$(CC) $(PARAM) -DDEBUG -c main.cc
-	$(CC) $(PARAM) -c tools/math.cc
+	$(CC) $(PARAM) -DDEBUG -c tools/math.cc
 	$(CC) $(PARAM) -DDEBUG -c k-means/kmeans.cc
 	$(CC) $(PARAM) -DDEBUG -c tools/viewer.cc
 	$(CC) $(PARAM) -DDEBUG -c tools/Bitmap.cc

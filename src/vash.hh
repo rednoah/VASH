@@ -11,7 +11,10 @@
 
 #include "tools/Movie.hh"
 #include "tools/Bitmap.hh"
+
+#ifdef DEBUG
 #include "tools/viewer.hh"
+#endif
 
 using namespace std;
 

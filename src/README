@@ -1,0 +1,17 @@
+VASH - Perceptual Hash project for Videos
+
+Compilation:
+Simply run 'make' in this directory. You may need to install a number of libraries and their headers (libavformat, libavcodec, libswscale). Your g++ C++ compiler needs to support the new C++0X standard.
+
+
+Usage:
+-----------------------------
+
+Training:
+First, create a worksetfile. This is a simple text file, where each line represents a video that you want to include in training.
+An example can be found in workset/workset.txt.
+
+After that, run './vash train <worksetfile>', This will generate a centroids.db and a dataset.db file (both are quite small). The training process may require a lot RAM and CPU time depending on the number and lengths of videos you train.
+
+Testing:
+Given the centroids.db and dataset.db files, run: './vash test <movie>' where movie is the video you want to test.
