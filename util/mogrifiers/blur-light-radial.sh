@@ -1,2 +1,2 @@
 #!/bin/bash
-mogrify "$@" -thumbnail "640x480" -radial-blur 5
+mogrify -thumbnail "640x480" -radial-blur 5 "$@"

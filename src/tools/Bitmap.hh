@@ -23,7 +23,6 @@ struct Pixel{
 };
 
 
-
 class cBitmap{
  private:
   struct Pixel * bmap;

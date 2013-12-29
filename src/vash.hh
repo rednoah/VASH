@@ -26,6 +26,19 @@ extern "C" {
 #include "sift.h"
 }
 
+
+struct Noise{
+ bool gaussian_heavy;
+ bool gaussian_light;
+ bool motion;
+ bool radial;
+ bool crop;
+ bool logo;
+ bool sharpen_heavy;
+ bool sharpen_light;
+ bool subtitles;
+};
+
 //Theoretically, there should be only one orientation. But practically, we might have ambiguous results
 //SIFT computes up to four possible orientations.
 //Important question: In http://www.vlfeat.org/api/sift.html#sift-intro-detector -> Orientation assignment, it sounds like the orientations are ordered.
@@ -87,4 +100,6 @@ void loadCentroids( vector<SIFTFeature> & c, char * filename );
 
 void saveDatabase( vector< pair<MovieFile, vector<VisualWord> > > & db, char * filename );
 void loadDatabase( vector< pair<MovieFile, vector<VisualWord> > > & db, char * filename );
+
+void addNoise( cBitmap & b, Noise noiseInfo );
 #endif

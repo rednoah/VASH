@@ -111,7 +111,17 @@ int main( int argc, char ** argv ){
 		vector<SIFTFeature> sift;
 		vector<SIFTFeature> centroids;		
 
+		//What attacks do we want to use?
+		Noise noiseInfo;
+		memset( &noiseInfo, 0, sizeof(Noise) );
+		noiseInfo.gaussian_heavy = true;
+
 		while( m.loadNextFrame( b ) ){
+			//Do noise attacks here in evaluation
+			
+			addNoise( b, noiseInfo );
+
+			//Parse SIFT keypoints in Bitmap b
 			processSIFTPoints( sift, b );
 		}
 
@@ -179,6 +189,88 @@ int main( int argc, char ** argv ){
 
 	return 0;
 }
+
+//For evaluation, we try to distort our images
+void addNoise( cBitmap & b, Noise noiseInfo ){
+    char tmpfile[64];
+	strcpy( tmpfile, "/tmp/vashImage.bmp3" );	//mogrify will output v4 Header if ending is not .bmp3, which my Bitmap class does not parse correctly atm ;)
+	b.saveBitmap( tmpfile );
+
+	if( noiseInfo.gaussian_heavy ){
+		char command[128];
+		strcpy( command, "../util/mogrifiers/blur-heavy.sh " );
+		strcat( command, tmpfile );
+
+		int r = system( command );
+cout << "Heavy blur, result: " << r << endl;
+	}
+
+	if( noiseInfo.gaussian_light ){
+		char command[128];
+		strcpy( command, "../util/mogrifiers/blur-light.sh " );
+		strcat( command, tmpfile );
+
+		int r = system( command );
+	}
+
+	if( noiseInfo.motion ){
+		char command[128];
+		strcpy( command, "../util/mogrifiers/blur-light-motion.sh " );
+		strcat( command, tmpfile );
+
+		int r = system( command );
+	}
+
+	if( noiseInfo.radial ){
+		char command[128];
+		strcpy( command, "../util/mogrifiers/blur-light-radial.sh " );
+		strcat( command, tmpfile );
+
+		int r = system( command );
+	}
+
+	if( noiseInfo.crop ){
+		char command[128];
+		strcpy( command, "../util/mogrifiers/crop-black.sh " );
+		strcat( command, tmpfile );
+
+		int r = system( command );
+	}
+
+	if( noiseInfo.logo ){
+		char command[128];
+		strcpy( command, "../util/mogrifiers/logo.sh " );
+		strcat( command, tmpfile );
+
+		int r = system( command );
+	}
+
+	if( noiseInfo.sharpen_heavy ){
+		char command[128];
+		strcpy( command, "../util/mogrifiers/sharpen-heavy.sh " );
+		strcat( command, tmpfile );
+
+		int r = system( command );
+	}
+	if( noiseInfo.sharpen_light ){
+		char command[128];
+		strcpy( command, "../util/mogrifiers/sharpen-light.sh " );
+		strcat( command, tmpfile );
+
+		int r = system( command );
+	}
+
+	if( noiseInfo.subtitles ){
+		char command[128];
+		strcpy( command, "../util/mogrifiers/subs.sh " );
+		strcat( command, tmpfile );
+
+		int r = system( command );
+	}
+
+	b.loadBitmap( tmpfile );
+}
+
 
 //TODO: This should also save the VisualWords (->Merge centroids into VisualWord struct)
 void saveCentroids( vector<SIFTFeature> & c, char * filename ){

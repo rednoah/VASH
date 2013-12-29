@@ -51,27 +51,47 @@ int cBitmap::loadBitmap( char * filename ){
 
  file.read( buffer, 4 );
  memcpy( &dibsize, buffer, 4 );
- assert( dibsize == 40 );
-
- file.read( buffer, dibsize-4 );
 
  width = 0;
  height = 0;
  bpp = 0;
 
+ file.read( buffer, 12 );
  memcpy( &width, buffer, 4 );
  memcpy( &height, buffer+4, 4 );
-if( height < 0 ){ height *= -1; flagNegHeight = 1; }
  memcpy( &bpp, buffer+10, 2 );
- assert( bpp == 24 || bpp == 32 );
- bpp /= 8;
- 
- paddingbytes = (4-(bpp*width)%4)%4;
 
- int sizeimg = 0;
- memcpy( &sizeimg, buffer+16, sizeof(int) );					//Size of row in bytes must be 0 modulo 4 -> padding if necessary
- //assert( sizeimg-width*height*3 == paddingbytes*height );		//Apparently not set by all programs
+ if( height < 0 ){ height *= -1; flagNegHeight = 1; }
+
+ switch( dibsize ){
+	case 40:
+	{
+		assert( dibsize == 40 );	//BITMAPINFOHEADER
+
+		file.read( buffer, dibsize-4-12 );	//We already read size, width, height
+
+ 		assert( bpp == 24 || bpp == 32 );
+ 		bpp /= 8;
  
+ 		paddingbytes = (4-(bpp*width)%4)%4;
+
+ 		int sizeimg = 0;
+ 		memcpy( &sizeimg, buffer+16, sizeof(int) );					//Size of row in bytes must be 0 modulo 4 -> padding if necessary
+ 		//assert( sizeimg-width*height*3 == paddingbytes*height );		//Apparently not set by all programs
+		break;
+	}
+	case 108:
+	{
+		exit(1);
+		/* BITMAPV4HEADER not really supported yet */
+		file.read( buffer, dibsize-4-12 );
+
+		break;
+	}
+	default:
+		exit(1);
+ } 
+
  file.seekg( cBitmapoffset, file.beg );
 
  bmap = (Pixel *) malloc( width*height*sizeof(struct Pixel) );

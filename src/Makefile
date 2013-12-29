@@ -20,7 +20,7 @@ all:
 	$(CC) $(PARAM) -c tools/Bitmap.cc
 	$(CC) $(PARAM) -c tools/Movie.cc
 	$(CC) $(PARAM) -c lsh/lsh.cc
-	$(LN) -o vash main.o math.o kmeans.o lsh.o Movie.o Bitmap.o -L$(LIBS) -Wl,-rpath=$(LIBS) -lvl -lavformat -lavcodec -lswscale
+	$(LN) -o vash main.o math.o kmeans.o lsh.o Movie.o Bitmap.o -L$(LIBS) -Wl,-rpath=$(LIBS) -lvl -lavformat -lavcodec -lswscale -lavutil
 #This one is for DEBUG purposes only (includes viewer)
 debug_gl:
 	$(CC) $(PARAM) -DDEBUG -c main.cc

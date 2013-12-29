@@ -39,10 +39,6 @@ int LSHasher::hash( double * feature, int dim, int num_hashes ){
 		result += dotProduct( w, feature, dim );
 	}
 
-	#ifdef DEBUG
-	cout << "Hashed bucket is: " << x << endl;
-	#endif
-
 	delete[] w;
 
 	//In HW#2 we formed binary strings and compared them with hamming, but here I want k buckets, i.e., integers in [0,k-1].
