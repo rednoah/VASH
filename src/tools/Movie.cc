@@ -20,6 +20,10 @@ Movie::Movie( char * f ){
  pCodec = NULL;
  pFrame = NULL; 
  pFrameRGB = NULL;
+ pVideoStream = NULL;
+
+ lengthInFrames = 0;
+ timestamp = 0;
 
  initialize();
 }
@@ -61,6 +65,7 @@ void Movie::initialize(){
 	for( unsigned int i = 0; i < pFormatCtx->nb_streams; i++ )
 		if( pFormatCtx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO ){
 			videoStream=i;
+			pVideoStream = pFormatCtx->streams[i];
 			break;
 		}
 
@@ -69,6 +74,15 @@ void Movie::initialize(){
 		return;
 	}
   
+	AVRational r = pVideoStream->r_frame_rate;
+	lengthInFrames = (pFormatCtx->duration/AV_TIME_BASE) * (r.num/r.den);	//TODO
+
+	#ifdef DEBUG
+	cout << "Length in secs: " << pFormatCtx->duration/AV_TIME_BASE << endl;
+	cout << "Num Frames: " << lengthInFrames << endl;
+	cout << "Framerate: " << (double)(r.num/r.den) << endl;
+	#endif
+
 	pCodecCtx = pFormatCtx->streams[videoStream]->codec;	// Get a pointer to the codec context for the video stream
   
 	pCodec = avcodec_find_decoder(pCodecCtx->codec_id);		// Find the decoder for the video stream
@@ -110,9 +124,19 @@ void Movie::initialize(){
 	pSWSContext = sws_getContext(pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt, nVidWidth, nVidHeight, PIX_FMT_RGB24, SWS_BILINEAR, 0, 0, 0);
 }
 
+void Movie::seekNextSection( double percentage ){
+	timestamp += percentage*lengthInFrames;
+
+	if( timestamp > lengthInFrames ) 
+		timestamp = lengthInFrames-1;
+
+	avformat_seek_file( pFormatCtx, videoStream, 0, timestamp, LONG_MAX, AVSEEK_FLAG_FRAME );
+	avcodec_flush_buffers( pCodecCtx );
+}
+
 bool Movie::loadNextFrame( cBitmap & b ){
 	while(av_read_frame(pFormatCtx, &packet)>=0) {
-		if(packet.stream_index==videoStream) {													//Is this a packet from the video stream?
+		if(packet.stream_index==videoStream && packet.flags == AV_PKT_FLAG_KEY ) {													//Is this a packet from the video stream?
 			avcodec_decode_video2(pCodecCtx, pFrame, &frameFinished, &packet );					//Decode video frame
 
 			if(pFrame->pict_type != FF_I_TYPE )													//Added: If this is not an I-Frame, skip it

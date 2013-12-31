@@ -95,6 +95,8 @@ public:
 /* From main.cc */
 void processSIFTPoints( vector<SIFTFeature> & storage, cBitmap & bitmap );
 
+void generateImageDescription( vector<VisualWord> & description, vector<SIFTFeature> & features, vector<SIFTFeature> & centroids );
+
 void saveCentroids( vector<SIFTFeature> & c, char * filename );
 void loadCentroids( vector<SIFTFeature> & c, char * filename );
 

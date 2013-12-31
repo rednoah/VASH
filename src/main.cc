@@ -5,12 +5,16 @@ using namespace std;
 int main( int argc, char ** argv ){
 	bool train = false;
 	bool test = false;
+	bool clustering = false;
 
 	char fileset[128];
 	char testfile[128];
 
+	int cluster_k = CLUSTER_K;	//The number of visual words we use
+
+
 	/* Parse parameters */
-	if( argc != 3 ) return -1;	//Not enough parameters passed
+	if( argc < 3 || argc > 4  ) return -1;	//Not enough parameters passed
 
 	if( strcmp( argv[1], "train" ) == 0 ){
 		train = true;
@@ -22,11 +26,72 @@ int main( int argc, char ** argv ){
 		strcpy( testfile, argv[2] );	//A video to test
 	}
 
+	if( strcmp( argv[1], "cluster" ) == 0 ){
+		clustering = true;
+		sscanf( argv[2], "%d", &cluster_k );
+		strcpy( fileset, argv[3] );
+	}
 
-	/* Training phase */
+	/* Standalone Clustering */
+	if( clustering ){
+		vector<SIFTFeature> clustering;							//Copy of features for clustering alone
+
+		//Decode all Videos, train SIFT Features
+		ifstream queries;
+		queries.open(fileset, ifstream::in|ifstream::binary );  //Contains location of all movies
+		if( !queries.is_open() )	return -1;					//Could not open file
+
+		queries.seekg( queries.beg );
+
+		int i = 0;
+		while( true ){
+			char filename[128];
+			queries.getline( filename, 128 );
+
+			if( !queries ) break;
+
+			cout << "Reading file" << filename << endl;
+
+			cBitmap b;
+
+			Movie m( filename );
+			MovieFile f( filename, i++ );
+
+			while( m.loadNextFrame( b ) ){
+				vector<SIFTFeature> tmp;
+
+				processSIFTPoints( tmp, b );
+				clustering.insert( clustering.end(), tmp.begin(), tmp.end() );	
+				tmp.clear();
+			}
+			cout << "Clustering size is: " << clustering.size() << endl;
+		}
+
+		queries.close();
+
+		//Run k-means on ALL SIFT Features to generate words
+		vector<SIFTFeature> centroids;
+
+		KMeansClustering c(cluster_k);
+		c.lloyds( clustering );
+
+		clustering.clear();
+
+		c.getCentroids( centroids );
+		
+		//Save centroids (Visual Words) to File
+		char centroidFile[128];
+		strcpy( centroidFile, "workset/centroids_k" );
+		strcat( centroidFile, argv[2] ); 				//(The number of centroids)
+		strcat( centroidFile, ".db" );
+
+		saveCentroids( centroids, centroidFile );
+	}
+
+	/* Standalone Training phase */
+	/* Requires clustering to be completed! */
 	if( train ){
 		vector<pair<MovieFile,vector<SIFTFeature> > > dataset;	//The database
-		vector<SIFTFeature> clustering;							//Copy of features for clustering alone
 
 		//Decode all Videos, train SIFT Features
 		ifstream queries;
@@ -50,40 +115,46 @@ int main( int argc, char ** argv ){
 			MovieFile f( filename, i++ );
 			vector<SIFTFeature> sift;
 
+			m.seekNextSection( 0.25 );
+			int frames = 0;
+			double percentage = 0.25;
+
 			while( m.loadNextFrame( b ) ){
 				vector<SIFTFeature> tmp;
 
 				processSIFTPoints( tmp, b );
-				clustering.insert( clustering.end(), tmp.begin(), tmp.end() );	
 				sift.insert( sift.end(), tmp.begin(), tmp.end() );
 				tmp.clear();
+
+				//Select 10 Frames at each percentage (0.25, 0.5, 0.75)
+				//For simplicity, need to keep track of percentage here, not in Movie!
+				if( ++frames == 10 ){
+					frames = 0;
+					percentage += 0.25;
+					if( percentage >= 1 )
+						break;
+					else
+						m.seekNextSection( 0.25 );
+				}
 			}
 
 			dataset.push_back( make_pair( f, sift ) );
-			cout << "Clustering size is: " << clustering.size() << endl;
 			sift.clear();
 
 		}
 
 		queries.close();
 
-		//Run k-means on ALL SIFT Features to generate words
 		vector<SIFTFeature> centroids;
-
-		KMeansClustering c(CLUSTER_K);
-		c.lloyds( clustering );
-
-		clustering.clear();
-
-		c.getCentroids( centroids );
 		
-		//Save centroids (Visual Words) to File
 		char centroidFile[128];
-		strcpy( centroidFile, CENTROID_FILE );
+		if( argc == 4 )
+			strcpy( centroidFile, argv[3] );
+		else
+			strcpy( centroidFile, CENTROID_FILE );
 
-		saveCentroids( centroids, centroidFile );
+		loadCentroids( centroids, centroidFile );
 
-		//TODO: So far, we save all sift features of the whole movie in one. Need some e.g., shot-level signature!
 		//Save visual word representation to a database
 		char datasetFile[128];
 		strcpy( datasetFile, DATASET_FILE );
@@ -95,7 +166,7 @@ int main( int argc, char ** argv ){
 			vector<VisualWord> v;
 
 			//Generate a histogram of Visual Words: <id, #occurences>
-			c.generateImageDescription( v, it->second );	//Actually more like MovieDescription, see TODO above.
+			generateImageDescription( v, it->second, centroids );	//Actually more like MovieDescription, see TODO above.
 
 			db.push_back( make_pair( it->first, v ) );
 		}
@@ -116,6 +187,10 @@ int main( int argc, char ** argv ){
 		memset( &noiseInfo, 0, sizeof(Noise) );
 		noiseInfo.gaussian_heavy = true;
 
+		m.seekNextSection( 0.25 );
+		int frames = 0;
+		double percentage = 0.25;
+
 		while( m.loadNextFrame( b ) ){
 			//Do noise attacks here in evaluation
 			
@@ -123,6 +198,18 @@ int main( int argc, char ** argv ){
 
 			//Parse SIFT keypoints in Bitmap b
 			processSIFTPoints( sift, b );
+
+
+			//Select 10 Frames at each percentage (0.25, 0.5, 0.75)
+			//For simplicity, need to keep track of percentage here, not in Movie!
+			if( ++frames == 10 ){
+				frames = 0;
+				percentage += 0.25;
+				if( percentage >= 1 )
+					break;
+				else
+					m.seekNextSection( 0.25 );
+			}
 		}
 
 		//Load VW, translate features
@@ -131,35 +218,10 @@ int main( int argc, char ** argv ){
 
 		loadCentroids( centroids, centroidFile );
 
-		int * occurences = new int[centroids.size()];
-		memset( occurences, 0, centroids.size()*sizeof(int) );
-
-		for( vector<SIFTFeature>::iterator it = sift.begin(); it != sift.end(); it++ ){
-			double min_distance = HUGE_VAL;
-			int min_index = -1;
-
-			for( unsigned int i = 0; i < centroids.size(); i++ ){
-				double d = sift_block_distance( *it, centroids[i] );
-
-				if( d < min_distance ){
-					min_distance = d;
-					min_index = i;
-				}
-			}
-
-			occurences[min_index]++;
-		}
-
 		vector<VisualWord> v;
-		for( unsigned int i = 0; i < centroids.size(); i++ ){
-			if( occurences[i] == 0 ) continue;
-			VisualWord w;
-			w.id = i;
-			w.occurences = occurences[i];
-			v.push_back( w );
-		}
 
-		delete[] occurences;
+		generateImageDescription( v, sift, centroids );
+
 		sift.clear();
 		centroids.clear();
 
@@ -190,82 +252,131 @@ int main( int argc, char ** argv ){
 	return 0;
 }
 
+void generateImageDescription( vector<VisualWord> & description, vector<SIFTFeature> & features, vector<SIFTFeature> & centroids ){
+	int * occurences = new int[centroids.size()];
+	memset( occurences, 0, centroids.size()*sizeof(int) );
+
+	for( vector<SIFTFeature>::iterator it = features.begin(); it != features.end(); it++ ){
+		double min_distance = HUGE_VAL;
+		int min_index = -1;
+
+		for( unsigned int i = 0; i < centroids.size(); i++ ){
+			double d = sift_block_distance( *it, centroids[i] );
+
+			if( d < min_distance ){
+				min_distance = d;
+				min_index = i;
+			}
+		}
+		occurences[min_index]++;
+	}
+
+	
+	for( unsigned int i = 0; i < centroids.size(); i++ ){
+		if( occurences[i] == 0 ) continue;
+		VisualWord w;
+		w.id = i;
+		w.occurences = occurences[i];
+		description.push_back( w );
+	}
+
+	delete[] occurences;
+}
+
 //For evaluation, we try to distort our images
 void addNoise( cBitmap & b, Noise noiseInfo ){
     char tmpfile[64];
+	char command[128];
+
 	strcpy( tmpfile, "/tmp/vashImage.bmp3" );	//mogrify will output v4 Header if ending is not .bmp3, which my Bitmap class does not parse correctly atm ;)
+	strcpy( command, "rm " );
+	strcat( command, tmpfile );
+
+	if( system( command ) != 0 ){
+		cerr << "Could not delete tmp file!" << endl;
+	}
+	
 	b.saveBitmap( tmpfile );
 
 	if( noiseInfo.gaussian_heavy ){
-		char command[128];
 		strcpy( command, "../util/mogrifiers/blur-heavy.sh " );
 		strcat( command, tmpfile );
 
 		int r = system( command );
-cout << "Heavy blur, result: " << r << endl;
+
+		if( r != 0 ) cerr << "Encountered an error while executing mogrify script!" << endl;
 	}
 
 	if( noiseInfo.gaussian_light ){
-		char command[128];
 		strcpy( command, "../util/mogrifiers/blur-light.sh " );
 		strcat( command, tmpfile );
 
 		int r = system( command );
+		if( r != 0 ) cerr << "Encountered an error while executing mogrify script!" << endl;
+
 	}
 
 	if( noiseInfo.motion ){
-		char command[128];
 		strcpy( command, "../util/mogrifiers/blur-light-motion.sh " );
 		strcat( command, tmpfile );
 
 		int r = system( command );
+		if( r != 0 ) cerr << "Encountered an error while executing mogrify script!" << endl;
+
 	}
 
 	if( noiseInfo.radial ){
-		char command[128];
 		strcpy( command, "../util/mogrifiers/blur-light-radial.sh " );
 		strcat( command, tmpfile );
 
 		int r = system( command );
+		if( r != 0 ) cerr << "Encountered an error while executing mogrify script!" << endl;
+
 	}
 
 	if( noiseInfo.crop ){
-		char command[128];
 		strcpy( command, "../util/mogrifiers/crop-black.sh " );
 		strcat( command, tmpfile );
 
 		int r = system( command );
+		if( r != 0 ) cerr << "Encountered an error while executing mogrify script!" << endl;
+
 	}
 
 	if( noiseInfo.logo ){
-		char command[128];
 		strcpy( command, "../util/mogrifiers/logo.sh " );
 		strcat( command, tmpfile );
 
 		int r = system( command );
+		if( r != 0 ) cerr << "Encountered an error while executing mogrify script!" << endl;
+
 	}
 
 	if( noiseInfo.sharpen_heavy ){
-		char command[128];
 		strcpy( command, "../util/mogrifiers/sharpen-heavy.sh " );
 		strcat( command, tmpfile );
 
 		int r = system( command );
+		if( r != 0 ) cerr << "Encountered an error while executing mogrify script!" << endl;
+
 	}
+
 	if( noiseInfo.sharpen_light ){
-		char command[128];
 		strcpy( command, "../util/mogrifiers/sharpen-light.sh " );
 		strcat( command, tmpfile );
 
 		int r = system( command );
+		if( r != 0 ) cerr << "Encountered an error while executing mogrify script!" << endl;
+
 	}
 
 	if( noiseInfo.subtitles ){
-		char command[128];
 		strcpy( command, "../util/mogrifiers/subs.sh " );
 		strcat( command, tmpfile );
 
 		int r = system( command );
+		if( r != 0 ) cerr << "Encountered an error while executing mogrify script!" << endl;
+
 	}
 
 	b.loadBitmap( tmpfile );
@@ -302,6 +413,8 @@ void loadCentroids( vector<SIFTFeature> & c, char * filename ){
 		c.push_back( f );
 	}
 	data.close();
+
+	cout << c.size() << " Centroid were loaded!" << endl;
 
 }
 

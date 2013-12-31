@@ -6,12 +6,20 @@ Simply run 'make' in this directory. You may need to install a number of librari
 
 Usage:
 -----------------------------
+A typical workflow looks like this: Create Workset -> Clustering -> Training -> Testing
 
-Training:
-First, create a worksetfile. This is a simple text file, where each line represents a video that you want to include in training.
-An example can be found in workset/workset.txt.
+You begin with creating a worksetfile.
+This is a simple text file, where each line represents a video that you want to include in training. An example can be found in workset/workset.txt
 
-After that, run './vash train <worksetfile>', This will generate a centroids.db and a dataset.db file (both are quite small). The training process may require a lot RAM and CPU time depending on the number and lengths of videos you train.
+Then, you have to create the BoV representation. For this, run:
+'./vash cluster <number of VW> <worksetfile>'
+You should now have generated a centroids.db file. The default value for number of VW is 100.
+This process may require a lot RAM and CPU time depending on the number and lengths of videos you train.
 
-Testing:
-Given the centroids.db and dataset.db files, run: './vash test <movie>' where movie is the video you want to test.
+This is followed by the Training phase:
+'./vash train <worksetfile>'
+This will generate a dataset.db file. 
+
+Once the centroids.db and dataset.db files are generated, run: 
+'./vash test <movie>'
+where movie is the video you want to test.

@@ -146,7 +146,7 @@ int cBitmap::saveBitmap( char * filename ){
  header[0] = 'B';
  header[1] = 'M';
 
- int filesize = width*height*3;
+ int filesize = width*height*3+14+40;
  memcpy( header+2, &filesize, sizeof( int ) );
 
  header[6] = 0;

@@ -21,6 +21,7 @@ class Movie{
 		Movie( char * f );
 		~Movie();
 
+		void seekNextSection( double percentage );
 		bool loadNextFrame( cBitmap & b );
 		bool isHealthy();
 	private:
@@ -32,8 +33,12 @@ class Movie{
 		int width;
 		int height;
 
+		long lengthInFrames;
+		long timestamp;
+
 		AVFormatContext *pFormatCtx;
   		int             videoStream;
+		AVStream * 		pVideoStream;
   		AVCodecContext  *pCodecCtx;
   		AVCodec         *pCodec;
   		AVFrame         *pFrame; 
