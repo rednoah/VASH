@@ -94,7 +94,7 @@ public:
 
 /* From main.cc */
 void processSIFTPoints( vector<SIFTFeature> & storage, cBitmap & bitmap );
-
+void readWorkset( char * fileset, vector<SIFTFeature> & clustering, vector<pair<MovieFile,vector<SIFTFeature> > > & db, bool cluster, bool train, bool all );
 void generateImageDescription( vector<VisualWord> & description, vector<SIFTFeature> & features, vector<SIFTFeature> & centroids );
 
 void saveCentroids( vector<SIFTFeature> & c, char * filename );

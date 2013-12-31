@@ -8,6 +8,30 @@ Usage:
 -----------------------------
 A typical workflow looks like this: Create Workset -> Clustering -> Training -> Testing
 
+Usage:
+./vash <command> <parameter #1> [parameter #2]
+
+Possible commands are:
+	cluster <#1: Number k> <#2: Workset file> 
+	Example: './vash cluster 100 workset/workset.txt'
+	* This computes a clustering with k centroids only and saves it to a file
+
+	train	<#1: Workset file>
+	Example: './vash train workset/workset.txt'
+	* This trains the features GIVEN a centroid file and saves a dataset file.
+
+	combine	<#1: Number k> <#2: Workset file>
+	Example: './vash combine 100 workset/workset.txt'
+	* This combines cluster + train. Is faster then using the two above commands consecutively.
+
+	test	<#1: Movie Test file>
+	Example: './vash test 01.mpg'
+	* This detects the title of a movie GIVEN dataset + centroid file.
+
+Remember to escape paths if necessary!
+
+
+Detailed guide:
 You begin with creating a worksetfile.
 This is a simple text file, where each line represents a video that you want to include in training. An example can be found in workset/workset.txt
 

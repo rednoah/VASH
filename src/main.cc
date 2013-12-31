@@ -6,6 +6,7 @@ int main( int argc, char ** argv ){
 	bool train = false;
 	bool test = false;
 	bool clustering = false;
+	bool combine = false;
 
 	char fileset[128];
 	char testfile[128];
@@ -32,46 +33,25 @@ int main( int argc, char ** argv ){
 		strcpy( fileset, argv[3] );
 	}
 
+	if( strcmp( argv[1], "combine" ) == 0 ){	//This does both Clustering AND training.
+		combine = true;
+		sscanf( argv[2], "%d", &cluster_k );
+		strcpy( fileset, argv[3] );		
+	}
+
+
+	/* Used in clustering & training */
+	vector<pair<MovieFile,vector<SIFTFeature> > > dataset;	//The database to be trained
+	vector<SIFTFeature> centroids;							//The centroids
+
+
 	/* Standalone Clustering */
-	if( clustering ){
-		vector<SIFTFeature> clustering;							//Copy of features for clustering alone
+	if( clustering || combine ){
+		vector<SIFTFeature> clustering;										//Copy of features for clustering alone
 
-		//Decode all Videos, train SIFT Features
-		ifstream queries;
-		queries.open(fileset, ifstream::in|ifstream::binary );  //Contains location of all movies
-		if( !queries.is_open() )	return -1;					//Could not open file
-
-		queries.seekg( queries.beg );
-
-		int i = 0;
-		while( true ){
-			char filename[128];
-			queries.getline( filename, 128 );
-
-			if( !queries ) break;
-
-			cout << "Reading file" << filename << endl;
-
-			cBitmap b;
-
-			Movie m( filename );
-			MovieFile f( filename, i++ );
-
-			while( m.loadNextFrame( b ) ){
-				vector<SIFTFeature> tmp;
-
-				processSIFTPoints( tmp, b );
-				clustering.insert( clustering.end(), tmp.begin(), tmp.end() );	
-				tmp.clear();
-			}
-			cout << "Clustering size is: " << clustering.size() << endl;
-		}
-
-		queries.close();
+		readWorkset( fileset, clustering, dataset, true, combine, true );	//Change the last parameter to not train all files
 
 		//Run k-means on ALL SIFT Features to generate words
-		vector<SIFTFeature> centroids;
-
 		KMeansClustering c(cluster_k);
 		c.lloyds( clustering );
 
@@ -90,70 +70,20 @@ int main( int argc, char ** argv ){
 
 	/* Standalone Training phase */
 	/* Requires clustering to be completed! */
-	if( train ){
-		vector<pair<MovieFile,vector<SIFTFeature> > > dataset;	//The database
+	if( train || combine ){
 
-		//Decode all Videos, train SIFT Features
-		ifstream queries;
-		queries.open(fileset, ifstream::in|ifstream::binary );  //Contains location of all movies
-		if( !queries.is_open() )	return -1;					//Could not open file
+		if( !combine ){				//If this is not clustering + training combined, we need to load workset and centroids
+			char centroidFile[128];
+			if( argc == 4 )
+				strcpy( centroidFile, argv[3] );
+			else
+				strcpy( centroidFile, CENTROID_FILE );
 
-		queries.seekg( queries.beg );
+			loadCentroids( centroids, centroidFile );
 
-		int i = 0;
-		while( true ){
-			char filename[128];
-			queries.getline( filename, 128 );
-
-			if( !queries ) break;
-
-			cout << "Reading file" << filename << endl;
-
-			cBitmap b;
-
-			Movie m( filename );
-			MovieFile f( filename, i++ );
-			vector<SIFTFeature> sift;
-
-			m.seekNextSection( 0.25 );
-			int frames = 0;
-			double percentage = 0.25;
-
-			while( m.loadNextFrame( b ) ){
-				vector<SIFTFeature> tmp;
-
-				processSIFTPoints( tmp, b );
-				sift.insert( sift.end(), tmp.begin(), tmp.end() );
-				tmp.clear();
-
-				//Select 10 Frames at each percentage (0.25, 0.5, 0.75)
-				//For simplicity, need to keep track of percentage here, not in Movie!
-				if( ++frames == 10 ){
-					frames = 0;
-					percentage += 0.25;
-					if( percentage >= 1 )
-						break;
-					else
-						m.seekNextSection( 0.25 );
-				}
-			}
-
-			dataset.push_back( make_pair( f, sift ) );
-			sift.clear();
-
+			vector<SIFTFeature> dummy;	//Since we dont do clustering
+			readWorkset( fileset, dummy, dataset, false, true, false );
 		}
-
-		queries.close();
-
-		vector<SIFTFeature> centroids;
-		
-		char centroidFile[128];
-		if( argc == 4 )
-			strcpy( centroidFile, argv[3] );
-		else
-			strcpy( centroidFile, CENTROID_FILE );
-
-		loadCentroids( centroids, centroidFile );
 
 		//Save visual word representation to a database
 		char datasetFile[128];
@@ -180,7 +110,6 @@ int main( int argc, char ** argv ){
 		Movie m( testfile );
 		cBitmap b;
 		vector<SIFTFeature> sift;
-		vector<SIFTFeature> centroids;		
 
 		//What attacks do we want to use?
 		Noise noiseInfo;
@@ -198,7 +127,6 @@ int main( int argc, char ** argv ){
 
 			//Parse SIFT keypoints in Bitmap b
 			processSIFTPoints( sift, b );
-
 
 			//Select 10 Frames at each percentage (0.25, 0.5, 0.75)
 			//For simplicity, need to keep track of percentage here, not in Movie!
@@ -250,6 +178,88 @@ int main( int argc, char ** argv ){
 	}
 
 	return 0;
+}
+
+
+/* Read a workset file. Used when clustering or training */
+void readWorkset( char * fileset, vector<SIFTFeature> & clustering, vector<pair<MovieFile,vector<SIFTFeature> > > & db, bool cluster, bool train, bool all ){
+
+	//Decode all Videos, train SIFT Features
+	ifstream queries;
+	queries.open(fileset, ifstream::in|ifstream::binary );  //Contains location of all movies
+
+	if( !queries.is_open() ){	
+		cerr << "Could not open workset" << endl;
+		exit(1);		//Could not open file
+	}
+
+	queries.seekg( queries.beg );
+
+	int i = 0;
+	int frames = 0;
+	double percentage = 0.25;
+	vector<SIFTFeature> sift;
+
+	while( true ){
+		char filename[128];
+		queries.getline( filename, 128 );
+
+		if( !queries ) break;
+
+		cout << "Reading file" << filename << endl;
+
+		cBitmap b;
+		Movie m( filename );
+		MovieFile f( filename, i++ );
+
+		if( !all ){						//If _not_ all data is to be trained (i.e., choose only 10 frames at 25% steps)
+			m.seekNextSection( 0.25 );
+			frames = 0;
+			percentage = 0.25;
+		}
+
+		//Load a frame from the movie
+		while( m.loadNextFrame( b ) ){
+			vector<SIFTFeature> tmp;
+
+			//Process its SIFT keypoints
+			processSIFTPoints( tmp, b );
+
+			//If we want to do clustering, save in 'clustering'
+			if( cluster )
+				clustering.insert( clustering.end(), tmp.begin(), tmp.end() );	
+
+			//Same with training
+			if( train )
+				sift.insert( sift.end(), tmp.begin(), tmp.end() );
+
+			tmp.clear();
+
+			if( !all ){
+				//Select 10 Frames at each percentage (0.25, 0.5, 0.75)
+				//For simplicity, need to keep track of percentage here, not in Movie!
+				if( ++frames == 10 ){
+					frames = 0;
+					percentage += 0.25;
+					if( percentage >= 1 )
+						break;
+					else
+				m.seekNextSection( 0.25 );
+				}
+			}
+		}
+
+		if( train ){
+			db.push_back( make_pair( f, sift ) );		//Save a copy of MovieFile struct (which saves information like title) and the features
+			sift.clear();
+		}
+
+		if( cluster )
+			cout << "Clustering size is: " << clustering.size() << endl;
+		
+	}
+
+	queries.close();
 }
 
 void generateImageDescription( vector<VisualWord> & description, vector<SIFTFeature> & features, vector<SIFTFeature> & centroids ){
