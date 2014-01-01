@@ -10,21 +10,28 @@ int main( int argc, char ** argv ){
 
 	char fileset[128];
 	char testfile[128];
+	char clusterfile[128];
+	char trainfile[128];
 
 	int cluster_k = CLUSTER_K;	//The number of visual words we use
 
 
 	/* Parse parameters */
-	if( argc < 3 || argc > 4  ) return -1;	//Not enough parameters passed
+	if( argc < 3 || argc > 5  ) return -1;	//Not enough parameters passed
 
 	if( strcmp( argv[1], "train" ) == 0 ){
 		train = true;
 		strcpy( fileset, argv[2] );		//A textfile specifying all videos to train
+		strcpy( clusterfile, argv[3] );
 	}
 
 	if( strcmp( argv[1], "test" ) == 0 ){
 		test = true;
 		strcpy( testfile, argv[2] );	//A video to test
+		if( argc == 5 ){
+			strcpy( clusterfile, argv[3] );
+			strcpy( trainfile, argv[4] );
+		}
 	}
 
 	if( strcmp( argv[1], "cluster" ) == 0 ){
@@ -49,7 +56,7 @@ int main( int argc, char ** argv ){
 	if( clustering || combine ){
 		vector<SIFTFeature> clustering;										//Copy of features for clustering alone
 
-		readWorkset( fileset, clustering, dataset, true, combine, true );	//Change the last parameter to not train all files
+		readWorkset( fileset, clustering, dataset, true, combine, 0.1 );	//Change the last parameter to not train all files
 
 		//Run k-means on ALL SIFT Features to generate words
 		KMeansClustering c(cluster_k);
@@ -75,14 +82,15 @@ int main( int argc, char ** argv ){
 		if( !combine ){				//If this is not clustering + training combined, we need to load workset and centroids
 			char centroidFile[128];
 			if( argc == 4 )
-				strcpy( centroidFile, argv[3] );
+				strcpy( centroidFile, clusterfile );
 			else
 				strcpy( centroidFile, CENTROID_FILE );
 
 			loadCentroids( centroids, centroidFile );
 
 			vector<SIFTFeature> dummy;	//Since we dont do clustering
-			readWorkset( fileset, dummy, dataset, false, true, false );
+			readWorkset( fileset, dummy, dataset, false, true, 0.25 );
+			cout << "Finished reading workset" << endl;
 		}
 
 		//Save visual word representation to a database
@@ -116,6 +124,7 @@ int main( int argc, char ** argv ){
 		memset( &noiseInfo, 0, sizeof(Noise) );
 		noiseInfo.gaussian_heavy = true;
 
+
 		m.seekNextSection( 0.25 );
 		int frames = 0;
 		double percentage = 0.25;
@@ -123,14 +132,14 @@ int main( int argc, char ** argv ){
 		while( m.loadNextFrame( b ) ){
 			//Do noise attacks here in evaluation
 			
-			addNoise( b, noiseInfo );
+			//addNoise( b, noiseInfo );
 
 			//Parse SIFT keypoints in Bitmap b
 			processSIFTPoints( sift, b );
 
 			//Select 10 Frames at each percentage (0.25, 0.5, 0.75)
 			//For simplicity, need to keep track of percentage here, not in Movie!
-			if( ++frames == 10 ){
+			if( ++frames == NUM_FRAMES_PER_SEC ){
 				frames = 0;
 				percentage += 0.25;
 				if( percentage >= 1 )
@@ -142,7 +151,15 @@ int main( int argc, char ** argv ){
 
 		//Load VW, translate features
 		char centroidFile[128];
-		strcpy( centroidFile, CENTROID_FILE );
+		char datasetFile[128];
+
+		if( argc != 5 ){
+			strcpy( datasetFile, DATASET_FILE );
+			strcpy( centroidFile, CENTROID_FILE );
+		}else{
+			strcpy( datasetFile, trainfile );
+			strcpy( centroidFile, clusterfile );
+		}
 
 		loadCentroids( centroids, centroidFile );
 
@@ -154,8 +171,6 @@ int main( int argc, char ** argv ){
 		centroids.clear();
 
 		//Compare representation to others in database
-		char datasetFile[128];
-		strcpy( datasetFile, DATASET_FILE );
 
 		vector<pair<MovieFile, vector<VisualWord> > > db;
 		loadDatabase( db, datasetFile );
@@ -182,7 +197,7 @@ int main( int argc, char ** argv ){
 
 
 /* Read a workset file. Used when clustering or training */
-void readWorkset( char * fileset, vector<SIFTFeature> & clustering, vector<pair<MovieFile,vector<SIFTFeature> > > & db, bool cluster, bool train, bool all ){
+void readWorkset( char * fileset, vector<SIFTFeature> & clustering, vector<pair<MovieFile,vector<SIFTFeature> > > & db, bool cluster, bool train, double percentage ){
 
 	//Decode all Videos, train SIFT Features
 	ifstream queries;
@@ -197,8 +212,12 @@ void readWorkset( char * fileset, vector<SIFTFeature> & clustering, vector<pair<
 
 	int i = 0;
 	int frames = 0;
-	double percentage = 0.25;
+	double p = 0;
+
 	vector<SIFTFeature> sift;
+	
+	if( percentage >= 1.0 )
+		percentage = 0.0;
 
 	while( true ){
 		char filename[128];
@@ -212,14 +231,19 @@ void readWorkset( char * fileset, vector<SIFTFeature> & clustering, vector<pair<
 		Movie m( filename );
 		MovieFile f( filename, i++ );
 
-		if( !all ){						//If _not_ all data is to be trained (i.e., choose only 10 frames at 25% steps)
-			m.seekNextSection( 0.25 );
+		if( percentage > 0.0 ){						//If _not_ all data is to be trained (i.e., choose only 10 frames at 25% steps)
+			m.seekNextSection( percentage );
 			frames = 0;
-			percentage = 0.25;
+			p = percentage;
 		}
+
+		int loop = 0;
 
 		//Load a frame from the movie
 		while( m.loadNextFrame( b ) ){
+			if( ++loop%100 == 0 )
+				cout << "Processing frame " << loop << endl;
+
 			vector<SIFTFeature> tmp;
 
 			//Process its SIFT keypoints
@@ -235,19 +259,21 @@ void readWorkset( char * fileset, vector<SIFTFeature> & clustering, vector<pair<
 
 			tmp.clear();
 
-			if( !all ){
-				//Select 10 Frames at each percentage (0.25, 0.5, 0.75)
+			if( percentage > 0 ){
+				//Select 10 Frames at each percentage (e.g., at 0.25, 0.5, 0.75, NOT at 0.0 or 1.0)
 				//For simplicity, need to keep track of percentage here, not in Movie!
-				if( ++frames == 10 ){
+				if( ++frames == NUM_FRAMES_PER_SEC ){
 					frames = 0;
-					percentage += 0.25;
-					if( percentage >= 1 )
+					p += percentage;
+					if( p >= 1 )
 						break;
 					else
-				m.seekNextSection( 0.25 );
+				m.seekNextSection( percentage );
 				}
 			}
 		}
+
+		cout << "Processed " << loop << " frames" << endl;
 
 		if( train ){
 			db.push_back( make_pair( f, sift ) );		//Save a copy of MovieFile struct (which saves information like title) and the features

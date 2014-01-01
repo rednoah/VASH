@@ -22,6 +22,8 @@ using namespace std;
 #define DATASET_FILE "workset/dataset.db"
 #define CENTROID_FILE "workset/centroids.db"
 
+#define NUM_FRAMES_PER_SEC 10		//Number of Frames to be evaluated per section
+
 extern "C" {
 #include "sift.h"
 }
@@ -94,7 +96,16 @@ public:
 
 /* From main.cc */
 void processSIFTPoints( vector<SIFTFeature> & storage, cBitmap & bitmap );
-void readWorkset( char * fileset, vector<SIFTFeature> & clustering, vector<pair<MovieFile,vector<SIFTFeature> > > & db, bool cluster, bool train, bool all );
+
+/* 	Read a workset, save either clustering vectors or training vectors or both.
+	@param fileset: filename of workset file
+	@param clustering: vector to save clustering vectors
+	@param db: vector to save SIFT features of movies (not Visual Words!)
+	@param cluster: Collect Clustering information? (True: yes)
+	@param train: Collect Training feature vectors? (True: yes)
+	@param percentage: Skip how much before reading 10 frames each (0.0 -> don't skip)
+*/
+void readWorkset( char * fileset, vector<SIFTFeature> & clustering, vector<pair<MovieFile,vector<SIFTFeature> > > & db, bool cluster, bool train, double percentage );
 void generateImageDescription( vector<VisualWord> & description, vector<SIFTFeature> & features, vector<SIFTFeature> & centroids );
 
 void saveCentroids( vector<SIFTFeature> & c, char * filename );
