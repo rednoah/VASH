@@ -89,7 +89,7 @@ int main( int argc, char ** argv ){
 			loadCentroids( centroids, centroidFile );
 
 			vector<SIFTFeature> dummy;	//Since we dont do clustering
-			readWorkset( fileset, dummy, dataset, false, true, 0.25 );
+			readWorkset( fileset, dummy, dataset, false, true, NO_FRAMES_SKIP );
 			cout << "Finished reading workset" << endl;
 		}
 
@@ -125,9 +125,9 @@ int main( int argc, char ** argv ){
 		noiseInfo.gaussian_heavy = true;
 
 
-		m.seekNextSection( 0.25 );
+		m.seekNextSection( NO_FRAMES_SKIP );
 		int frames = 0;
-		double percentage = 0.25;
+		double percentage = NO_FRAMES_SKIP;
 
 		while( m.loadNextFrame( b ) ){
 			//Do noise attacks here in evaluation
@@ -141,11 +141,11 @@ int main( int argc, char ** argv ){
 			//For simplicity, need to keep track of percentage here, not in Movie!
 			if( ++frames == NUM_FRAMES_PER_SEC ){
 				frames = 0;
-				percentage += 0.25;
+				percentage += NO_FRAMES_SKIP;
 				if( percentage >= 1 )
 					break;
 				else
-					m.seekNextSection( 0.25 );
+					m.seekNextSection( NO_FRAMES_SKIP );
 			}
 		}
 

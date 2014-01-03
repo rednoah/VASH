@@ -23,6 +23,7 @@ using namespace std;
 #define CENTROID_FILE "workset/centroids.db"
 
 #define NUM_FRAMES_PER_SEC 10		//Number of Frames to be evaluated per section
+#define NO_FRAMES_SKIP 0.25
 
 extern "C" {
 #include "sift.h"
