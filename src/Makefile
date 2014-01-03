@@ -7,6 +7,7 @@ LN_WIN=i586-mingw32msvc-g++
 UNAME_P := $(shell uname -p)
 ifeq ($(UNAME_P),x86_64)
 	LIBS=../lib/glnxa64
+	SL=/usr/lib/x86_64-linux-gnu/
 else
 	LIBS=../lib/glnx86
 endif
@@ -20,7 +21,7 @@ all:
 	$(CC) $(PARAM) -c tools/Bitmap.cc
 	$(CC) $(PARAM) -c tools/Movie.cc
 	$(CC) $(PARAM) -c lsh/lsh.cc
-	$(LN) -o vash main.o math.o kmeans.o lsh.o Movie.o Bitmap.o -L$(LIBS) -Wl,-rpath=$(LIBS) -lvl -lavformat -lavcodec -lswscale -lavutil
+	$(LN) -o vash main.o math.o kmeans.o lsh.o Movie.o Bitmap.o -L$(LIBS) -Wl,-Bdynamic,-rpath=$(LIBS) -lvl -lavformat -lavcodec -lswscale -lavutil 
 #This one is for DEBUG purposes only (includes viewer)
 debug_gl:
 	$(CC) $(PARAM) -DDEBUG -c main.cc

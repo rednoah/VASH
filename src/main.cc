@@ -132,7 +132,7 @@ int main( int argc, char ** argv ){
 		while( m.loadNextFrame( b ) ){
 			//Do noise attacks here in evaluation
 			
-			//addNoise( b, noiseInfo );
+			addNoise( b, noiseInfo );
 
 			//Parse SIFT keypoints in Bitmap b
 			processSIFTPoints( sift, b );
@@ -334,7 +334,8 @@ void addNoise( cBitmap & b, Noise noiseInfo ){
 	
 	b.saveBitmap( tmpfile );
 
-	if( noiseInfo.gaussian_heavy ){
+	if( noiseInfo.gaussian_
+heavy ){
 		strcpy( command, "../util/mogrifiers/blur-heavy.sh " );
 		strcat( command, tmpfile );
 
