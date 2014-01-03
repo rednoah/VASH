@@ -56,7 +56,7 @@ int main( int argc, char ** argv ){
 	if( clustering || combine ){
 		vector<SIFTFeature> clustering;										//Copy of features for clustering alone
 
-		readWorkset( fileset, clustering, dataset, true, combine, 0.1 );	//Change the last parameter to not train all files
+		readWorkset( fileset, clustering, dataset, true, combine, NO_FRAMES_SKIP );	//Change the last parameter to not train all files
 
 		//Run k-means on ALL SIFT Features to generate words
 		KMeansClustering c(cluster_k);
