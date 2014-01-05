@@ -57,13 +57,27 @@ int cBitmap::loadBitmap( char * filename ){
  bpp = 0;
 
  file.read( buffer, 12 );
- memcpy( &width, buffer, 4 );
- memcpy( &height, buffer+4, 4 );
- memcpy( &bpp, buffer+10, 2 );
+
+ memcpy( &width, buffer, 2 );
+ memcpy( &height, buffer+2, 2 );
+ memcpy( &bpp, buffer+6, 2 );
 
  if( height < 0 ){ height *= -1; flagNegHeight = 1; }
 
  switch( dibsize ){
+	case 12:
+	{
+		assert( dibsize == 12 );	//BITMAPINFOHEADER
+
+ 		assert( bpp == 24 || bpp == 32 );
+ 		bpp /= 8;
+ 
+ 		paddingbytes = (4-(bpp*width)%4)%4;
+
+ 		int sizeimg = 0;
+ 		memcpy( &sizeimg, buffer+16, sizeof(int) );					//Size of row in bytes must be 0 modulo 4 -> padding if necessary
+		break;
+	}
 	case 40:
 	{
 		assert( dibsize == 40 );	//BITMAPINFOHEADER
@@ -82,6 +96,7 @@ int cBitmap::loadBitmap( char * filename ){
 	}
 	case 108:
 	{
+		cerr << "This format is not supported yet!" << endl;
 		exit(1);
 		/* BITMAPV4HEADER not really supported yet */
 		file.read( buffer, dibsize-4-12 );
@@ -89,6 +104,7 @@ int cBitmap::loadBitmap( char * filename ){
 		break;
 	}
 	default:
+		cerr << "This format is not supported yet!" << endl;
 		exit(1);
  } 
 

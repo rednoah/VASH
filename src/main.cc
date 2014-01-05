@@ -324,7 +324,7 @@ void addNoise( cBitmap & b, Noise noiseInfo ){
     char tmpfile[64];
 	char command[128];
 
-	strcpy( tmpfile, "/tmp/vashImage.bmp3" );	//mogrify will output v4 Header if ending is not .bmp3, which my Bitmap class does not parse correctly atm ;)
+	strcpy( tmpfile, "/tmp/vashImage.bmp2" );	//mogrify will output v4 Header if ending is not .bmp3, which my Bitmap class does not parse correctly atm ;)
 	strcpy( command, "rm " );
 	strcat( command, tmpfile );
 
@@ -334,8 +334,7 @@ void addNoise( cBitmap & b, Noise noiseInfo ){
 	
 	b.saveBitmap( tmpfile );
 
-	if( noiseInfo.gaussian_
-heavy ){
+	if( noiseInfo.gaussian_heavy ){
 		strcpy( command, "../util/mogrifiers/blur-heavy.sh " );
 		strcat( command, tmpfile );
 
@@ -436,7 +435,10 @@ void loadCentroids( vector<SIFTFeature> & c, char * filename ){
 	std::ifstream data;
 	data.open( filename, ifstream::in|ifstream::binary );
 
-	if( !data ) exit(1);	//Could not open file
+	if( !data ){
+		cout << "Could not load Centroids!" << endl;
+		exit(1);	//Could not open file
+	}
 
 	/* Only loading one orientation for each SIFTFeature */
 	while( true ){
@@ -459,7 +461,10 @@ void loadDatabase( vector< pair<MovieFile, vector<VisualWord> > > & db, char * f
 	std::ifstream data;
 	data.open( filename, ifstream::in|ifstream::binary );
 
-	if( !data ) exit(1);
+	if( !data ){
+		cout << "Could not load Dataset!" << endl;
+		exit(1);
+	}
 
 	while( true ){
 		MovieFile mf;
