@@ -1,2 +1,2 @@
 #!/bin/bash
-mogrify -thumbnail "640x480" -gaussian-blur 5x2 "$@"
+mogrify -gaussian-blur 5x2 "$@"

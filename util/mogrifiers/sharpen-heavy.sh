@@ -1,2 +1,2 @@
 #!/bin/bash
-mogrify -thumbnail "640x480" -sharpen 0x8 "$@"
+mogrify -sharpen 0x8 "$@"
