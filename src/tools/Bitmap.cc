@@ -58,9 +58,15 @@ int cBitmap::loadBitmap( char * filename ){
 
  file.read( buffer, 12 );
 
- memcpy( &width, buffer, 2 );
- memcpy( &height, buffer+2, 2 );
- memcpy( &bpp, buffer+6, 2 );
+ if( dibsize == 12 ){
+  memcpy( &width, buffer, 2 );
+  memcpy( &height, buffer+2, 2 );
+  memcpy( &bpp, buffer+6, 2 );
+ }else{
+  memcpy( &width, buffer, 4 );
+  memcpy( &height, buffer+4, 4 );
+  memcpy( &bpp, buffer+10, 2 );
+ }
 
  if( height < 0 ){ height *= -1; flagNegHeight = 1; }
 
