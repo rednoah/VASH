@@ -9,6 +9,6 @@ new File('Video_List.txt').splitEachLine('\t', 'UTF-8') { line ->
 	if (file.exists()) {
 		println "[SKIPPED] $file"
 	} else {
-		println url.saveAs(file)
+		_guarded{ println url.saveAs(file) }
 	}
 }
