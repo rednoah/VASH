@@ -1,2 +1,2 @@
 #!/bin/bash
-mogrify -gaussian-blur 5x2 "$@"
+mogrify -blur 5x2 "$@"

@@ -1,0 +1,8 @@
+Centroid: 
+43:30 min
+
+Training:
+2:02 min
+
+Testing:
+9s

@@ -1,2 +1,2 @@
 #!/bin/bash
-mogrify -gaussian-blur 0x8 "$@"
+mogrify -blur 0x8 "$@"

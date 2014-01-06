@@ -22,8 +22,8 @@ using namespace std;
 #define DATASET_FILE "workset/dataset.db"
 #define CENTROID_FILE "workset/centroids.db"
 
-#define NUM_FRAMES_PER_SEC 10		//Number of Frames to be evaluated per section
-#define NO_FRAMES_SKIP 0.25
+#define NUM_FRAMES_PER_SEC 5		//Number of Frames to be evaluated per section
+#define NO_FRAMES_SKIP 0.2
 
 extern "C" {
 #include "sift.h"
