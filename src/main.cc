@@ -122,12 +122,13 @@ int main( int argc, char ** argv ){
 		//What attacks do we want to use?
 		Noise noiseInfo;
 		memset( &noiseInfo, 0, sizeof(Noise) );
-		noiseInfo.gaussian_heavy = true;
+		noiseInfo.subtitles = true;
 
 
 		m.seekNextSection( NO_FRAMES_SKIP );
 		int frames = 0;
 		double percentage = NO_FRAMES_SKIP;
+		cout << "Seeking to " << percentage*100 << "% " << endl;
 
 		while( m.loadNextFrame( b ) ){
 			//Do noise attacks here in evaluation
@@ -146,6 +147,7 @@ int main( int argc, char ** argv ){
 					break;
 				else
 					m.seekNextSection( NO_FRAMES_SKIP );
+				cout << "Seeking to " << percentage*100 << "% " << endl;
 			}
 		}
 
@@ -309,7 +311,6 @@ void generateImageDescription( vector<VisualWord> & description, vector<SIFTFeat
 
 	
 	for( unsigned int i = 0; i < centroids.size(); i++ ){
-		if( occurences[i] == 0 ) continue;
 		VisualWord w;
 		w.id = i;
 		w.occurences = occurences[i];
